@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.marco.bluenet_01.Chat">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:text="Find Devices"
+                android:onClick="findDevicesClick"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:text="Discoverability time: " />
+            <NumberPicker
+                android:id="@+id/discoverTime"
+                android:layout_width="50dp"
+                android:layout_height="match_parent">
+            </NumberPicker>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bluetooth Deviece Name: "
+                android:layout_gravity="center"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="N/A"
+                android:id="@+id/deviceName"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TextView
+                android:layout_width="350dp"
+                android:layout_height="wrap_content"
+                android:text="Available Bluetooth Devices:"
+                android:textSize="20dp"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="Messages:"
+                android:textSize="20dp"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="300dp">
+            <ListView
+                android:id="@+id/devicesListView"
+                android:layout_width="300dp"
+                android:layout_height="match_parent">
+            </ListView>
+            <TextView
+                android:layout_width="50dp"
+                android:layout_height="match_parent" />
+            <ListView
+                android:id="@+id/messagesListView"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent">
+            </ListView>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp">
+            <EditText
+                android:id="@+id/typeMessage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:hint="Broadcast A Message"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp">
+            <Button
+                android:id="@+id/sendButton"
+                android:onClick="sendClick"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"
+                android:text="Broadcast"/>
+            <Button
+                android:onClick="resetClick"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"
+                android:text="Reset"/>
+            <Button
+                android:onClick="locationClick"
+                android:layout_width="200dp"
+                android:layout_height="match_parent"
+                android:text="Send Location"
+                android:gravity="center"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp">
+
+        </LinearLayout>
+    </LinearLayout>
+
+</android.support.constraint.ConstraintLayout>

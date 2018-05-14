@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:chatview="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.marco.bluenet_01.Chat2Activity">
+
+    <!-- ChatView courtesy of https://github.com/timigod/android-chat-ui -->
+    <!--<co.intentservice.chatui.ChatView
+        android:id="@+id/chat_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        chatview:bubbleElevation="elevated"
+        chatview:bubbleBackgroundRcv="@color/white"
+        />-->
+
+</android.support.constraint.ConstraintLayout>

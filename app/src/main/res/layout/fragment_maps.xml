@@ -1,0 +1,52 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.marco.bluenet_01.mapsFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <fragment xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:map="http://schemas.android.com/apk/res-auto"
+            xmlns:tools="http://schemas.android.com/tools"
+            android:id="@+id/map"
+            class="com.google.android.gms.maps.SupportMapFragment"
+            android:name="com.example.marco.bluenet_01.chatFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:gravity="center|bottom"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:background="@color/dark_gray">
+        <Button
+            android:id="@+id/mapFindDevicesButton"
+            android:onClick="mapFindDevicesClick"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:text="Find Devices"/>
+        <EditText
+            android:id="@+id/inputMessageText"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:imeOptions="actionSend"
+            android:inputType="text"
+            android:hint="Enter Message"
+            />
+        <Button
+            android:id="@+id/mapBroadcastButton"
+            android:onClick="mapBroadcastClick"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:layout_weight="0"
+            android:text="Send"/>
+    </LinearLayout>
+
+</FrameLayout>

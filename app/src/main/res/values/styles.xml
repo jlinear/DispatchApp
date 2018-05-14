@@ -1,0 +1,21 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="android:textAllCaps">false</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+    </style>
+
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+        <!--<item name="android:colorPrimary">@color/u_blue_light</item>
+        <item name="android:colorPrimaryDark">@color/u_blue_darker</item>-->
+    </style>
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" >
+        <!--<item name="android:colorPrimary">@color/u_blue_light</item>
+        <item name="android:colorPrimaryDark">@color/u_blue_darker</item>-->
+    </style>
+
+</resources>
