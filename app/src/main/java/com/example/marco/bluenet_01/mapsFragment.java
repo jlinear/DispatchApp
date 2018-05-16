@@ -15,6 +15,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -86,6 +87,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+
     }
 
     @Override
@@ -123,6 +125,9 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        //SendButton.findViewById(R.id.mapBroadcastButton);
+
 
         return view;
     }
@@ -225,6 +230,11 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
             }
         });
     }
+
+    public void mapBroadcastClick(){
+        showToast("Halo!");
+    }
+
 
 
     /**
