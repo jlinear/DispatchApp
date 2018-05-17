@@ -1,6 +1,7 @@
 package com.example.marco.bluenet_01;
 
 import android.content.Context;
+import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Bundle;
@@ -58,6 +59,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
     boolean locationFound = false;
     SupportMapFragment mapFragment;
 
+    Button SendButton;
+
     public mapsFragment() {
         // Required empty public constructor
     }
@@ -96,6 +99,14 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_maps, container, false);
 
+        SendButton = view.findViewById(R.id.mapBroadcastButton);
+        SendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showToast("Halo!");
+            }
+        });
+
         // NOTE : We are calling the onFragmentInteraction() declared in the MainActivity
         // ie we are sending "Fragment 1" as title parameter when fragment1 is activated
         if (mListener != null) {
@@ -131,6 +142,9 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
 
         return view;
     }
+
+
+
 
     @Override
     public void onAttach(Context context) {
@@ -231,9 +245,13 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         });
     }
 
-    public void mapBroadcastClick(){
-        showToast("Halo!");
-    }
+
+
+//    public void mapBroadcastClick(View view){
+//        switch (view.getId()){
+//        }
+//        showToast("Halo!");
+//    }
 
 
 
