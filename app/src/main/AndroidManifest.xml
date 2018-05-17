@@ -22,9 +22,6 @@
             </intent-filter>
         </activity>
         <!-- Chat will not reset on screen rotation -->
-        <activity
-            android:name=".Chat"
-            android:configChanges="orientation|keyboardHidden|screenSize" />
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").
@@ -41,7 +38,6 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
-        <activity android:name=".Chat2Activity" />
         <activity
             android:name=".navigationActivity"
             android:label="@string/title_activity_navigation"
