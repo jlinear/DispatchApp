@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/BlueNet_Android.iml" filepath="$PROJECT_DIR$/BlueNet_Android.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/bluenet_stack/bluenet_stack.iml" filepath="$PROJECT_DIR$/bluenet_stack/bluenet_stack.iml" />
     </modules>
   </component>
 </project>
