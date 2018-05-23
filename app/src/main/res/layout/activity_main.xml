@@ -130,7 +130,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="Notre Dame Mobile Computing Lab, 2018"
+        android:text="University of Notre Dame M-Lab, 2018"
         android:gravity="bottom|center"/>
 
     </LinearLayout>
