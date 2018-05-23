@@ -1,0 +1,3 @@
+[submodule "bluenet_stack"]
+	path = bluenet_stack
+	url = https://github.com/jtsiva/bluenet_stack
