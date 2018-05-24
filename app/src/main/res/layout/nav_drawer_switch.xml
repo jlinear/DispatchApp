@@ -8,6 +8,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Device Discoverable           "
+        android:textOff="off"
+        android:textOn="on"
         android:padding="16dp"
         android:textAlignment="viewStart"/>
 </LinearLayout>

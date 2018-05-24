@@ -1,11 +1,15 @@
 package com.example.marco.bluenet_01;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.graphics.drawable.ColorDrawable;
+import android.location.Location;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
@@ -21,9 +25,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.tasks.OnSuccessListener;
 
 public class navigationActivity extends AppCompatActivity
         implements
@@ -33,6 +41,11 @@ public class navigationActivity extends AppCompatActivity
         protocolFragment.OnFragmentInteractionListener,
         aboutFragment.OnFragmentInteractionListener,
         NavigationView.OnNavigationItemSelectedListener {
+
+    private FusedLocationProviderClient mFusedLocationClient;
+    BleBasicService BleBasic;
+
+    Fragment mapsFragment = new mapsFragment();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,6 +146,48 @@ public class navigationActivity extends AppCompatActivity
         // NOTE:  Code to replace the toolbar title based current visible fragment
         // will not produce a null pointer exception because we define specific titles, no null possible
         getSupportActionBar().setTitle(title);
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        if (isChecked) {
+            Log.d("DDD", "haha");
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                        1);
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        1);
+                return;
+            }
+            mFusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                        @Override
+                        public void onSuccess(Location location) {
+                            // Got last known location. In some rare situations this can be null.
+                            if (location != null) {
+                                AdvertisementPayload outPayload = new AdvertisementPayload();
+                                outPayload.setUserID(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("userName", ""));//(getIntent().getStringExtra("userName"));
+                                outPayload.setLocation(location);
+                                byte[] out = outPayload.getPayload();
+                                BleBasic.startLeAdvertising(out);
+                            } else {
+                                throw new RuntimeException("Switch:" + " null location");
+                            }
+                        }
+                    });
+        }else{
+            BleBasic.stopAdvertising();
+        }
     }
 
     public void distressClick(View view) {
