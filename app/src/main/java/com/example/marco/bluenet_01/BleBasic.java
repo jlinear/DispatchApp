@@ -16,15 +16,18 @@ import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Handler;
 import android.os.ParcelUuid;
 import android.util.Log;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 import nd.edu.bluenet_stack.AdvertisementPayload;
+import nd.edu.bluenet_stack.LocationEntry;
 
 
 /**
@@ -47,6 +50,10 @@ public class BleBasic {
     private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
     private BluetoothLeScanner mBluetoothLeScanner;
 
+    AdvertisementPayload scan_Payload = new AdvertisementPayload();
+
+    //public static final ParcelUuid
+
 
 
     //the 5-8 digits defines the service
@@ -56,10 +63,11 @@ public class BleBasic {
     //  https://www.bluetooth.com/specifications/gatt/characteristics
     public static final ParcelUuid PAYLOAD_SERVICE =   //used as an agreement for ad/sc
             ParcelUuid.fromString("00001868-0000-1000-8000-00805f9b34fb");
-    public static String CLIENT_CHARACTERISTIC_CONFIG =
+    public static String PAYLOAD_CHARACTERISTIC_CONFIG =
             "00002968-0000-1000-8000-00805f9b34fb";
 
     public HashMap<BluetoothDevice, byte[]> mBleDevicesDict;
+    public HashMap<String, Location> ID_Loc_Dict;
     /**** **** end of variable declaration **** ****/
 
 
@@ -94,6 +102,7 @@ public class BleBasic {
         }
 
         mBleDevicesDict = new HashMap<BluetoothDevice, byte[]>();
+        ID_Loc_Dict = new HashMap<String, Location>();
 
     }
 
@@ -171,6 +180,7 @@ public class BleBasic {
 
         ArrayList<ScanFilter> filters = new ArrayList<ScanFilter>();
         filters.add(ResultsFilter);
+        Log.d(INFO_TAG,"BLE SCAN STARTED");
 
         //scan settings
         ScanSettings settings = new ScanSettings.Builder()
@@ -200,7 +210,7 @@ public class BleBasic {
         //callbackType could be one of
         // CALLBACK_TYPE_ALL_MATCHES, CALLBACK_TYPE_FIRST_MATCH or CALLBACK_TYPE_MATCH_LOST
         public void onScanResult(int callbackType, ScanResult result) {
-            //Log.d(DEBUG_TAG, "onScanResult: callbackType " + Integer.toString(callbackType));
+//            Log.d(INFO_TAG, "onScanResult: callbackType " + Integer.toString(callbackType));
             processResult(result);
         }
 
@@ -217,23 +227,38 @@ public class BleBasic {
             Log.e(ERR_TAG, "LE Scan Failed: " + errorCode);
         }
 
-        private void processResult(ScanResult result) {
-            //Log.v(ADSCActivity.class.getSimpleName(), "Process scan results");
-            if(!mBleDevicesDict.containsKey(result.getDevice())) {
-                byte[] scan_payload = result.getScanRecord().getServiceData().get(PAYLOAD_SERVICE);
-                Double Lat = AdvertisementPayload.parse_scan_payload(scan_payload).getLatitude();
-                Double Long = AdvertisementPayload.parse_scan_payload((scan_payload)).getLongitude();
-                String userID = AdvertisementPayload.parse_scan_payload(scan_payload).getProvider();
-
-//                String payload = new String(result.getScanRecord().getServiceData().get(PAYLOAD_SERVICE));
-                Log.d("DEBUG",result.getDevice().getName() + ' ' + Lat + ',' + Long + ';' + userID);
-                mBleDevicesDict.put(result.getDevice(), scan_payload);
+        private void processResult(ScanResult result){
+            byte[] payload = result.getScanRecord().getServiceData().get(PAYLOAD_SERVICE);
+            scan_Payload.fromBytes(payload);
+//            Log.d(INFO_TAG,"scan payload " + new String(payload,StandardCharsets.UTF_8));
+            String userID = new String(scan_Payload.getSrcID(), StandardCharsets.UTF_8);
+            if(!ID_Loc_Dict.containsKey(userID)){
+                Location temp_loc = null;
+                ID_Loc_Dict.put(userID,temp_loc);
+                Log.d(INFO_TAG,"Found a new user nearby!" + " " + userID);
             }
-
-            //Log.d(DEBUG_TAG,"# of available devices: " + Integer.toString(mBleDevicesDict.size()));
-            //mBluetoothGatt = result.getDevice().connectGatt(ADSCActivity.this,false,mGattCallback);
         }
     };
+
+//        private void processResult(ScanResult result) {
+//            //Log.v(ADSCActivity.class.getSimpleName(), "Process scan results");
+//            if(!mBleDevicesDict.containsKey(result.getDevice())) {
+//
+//                byte[] scan_payload = result.getScanRecord().getServiceData().get(PAYLOAD_SERVICE);
+//                advPayload.fromBytes(scan_payload);
+////                Double Lat = AdvertisementPayload.parse_scan_payload(scan_payload).getLatitude();
+////                Double Long = AdvertisementPayload.parse_scan_payload((scan_payload)).getLongitude();
+////                String userID = AdvertisementPayload.parse_scan_payload(scan_payload).getProvider();
+////
+//////                String payload = new String(result.getScanRecord().getServiceData().get(PAYLOAD_SERVICE));
+////                Log.d("DEBUG",result.getDevice().getName() + ' ' + Lat + ',' + Long + ';' + userID);
+////                mBleDevicesDict.put(result.getDevice(), scan_payload);
+//            }
+//
+//            //Log.d(DEBUG_TAG,"# of available devices: " + Integer.toString(mBleDevicesDict.size()));
+//            //mBluetoothGatt = result.getDevice().connectGatt(ADSCActivity.this,false,mGattCallback);
+//        }
+//    };
     /**** **** end of BLE SCAN **** ****/
 
 }

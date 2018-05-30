@@ -61,6 +61,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
 
     Button SendButton;
 
+
     public mapsFragment() {
         // Required empty public constructor
     }
@@ -103,7 +104,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         SendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                showToast("Halo!");
+                showToast("Halo! Test button, no actual usage.");
             }
         });
 
@@ -138,7 +139,6 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         }
 
         //SendButton.findViewById(R.id.mapBroadcastButton);
-
 
         return view;
     }

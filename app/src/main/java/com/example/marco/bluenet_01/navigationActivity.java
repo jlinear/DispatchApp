@@ -17,6 +17,7 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SwitchCompat;
 import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.util.Log;
@@ -31,7 +32,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
+
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
+import nd.edu.bluenet_stack.AdvertisementPayload;
 
 public class navigationActivity extends AppCompatActivity
         implements
@@ -40,12 +47,31 @@ public class navigationActivity extends AppCompatActivity
         profileFragment.OnFragmentInteractionListener,
         protocolFragment.OnFragmentInteractionListener,
         aboutFragment.OnFragmentInteractionListener,
-        NavigationView.OnNavigationItemSelectedListener {
+        NavigationView.OnNavigationItemSelectedListener,
+        CompoundButton.OnCheckedChangeListener{
 
     private FusedLocationProviderClient mFusedLocationClient;
-    BleBasicService BleBasic;
+    public BleBasic mBleBasic;
+    private String myID;
+    AdvertisementPayload mAdvPayload = new AdvertisementPayload();
+
+    private CentralService mCentral;
+    private PeripheralService mPeripheral;
 
     Fragment mapsFragment = new mapsFragment();
+
+    /**** GATT declarations ****/
+    private static final UUID MSG_SERVICE_UUID = UUID
+            .fromString("00001869-0000-1000-8000-00805f9b34fb");
+    private static final UUID MSG_CHAR_UUID = UUID.
+            fromString("00002a09-0000-1000-8000-00805f9b34fb");
+    private static final UUID SMSG_CHAR_UUID = UUID.
+            fromString("00002a10-0000-1000-8000-00805f9b34fb");
+    private static final UUID CLIENT_CHAR_CONFI_UUID = UUID.
+            fromString("00002a08-0000-1000-8000-00805f9b34fb");
+    private static final UUID SCLIENT_CHAR_CONFI_UUID = UUID.
+            fromString("00002a07-0000-1000-8000-00805f9b34fb");
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,6 +106,12 @@ public class navigationActivity extends AppCompatActivity
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
         ft.replace(R.id.mainFrame, new mapsFragment());
         ft.commit();
+
+        myID = PreferenceManager.getDefaultSharedPreferences(this).getString("userName", "");
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        mBleBasic = new BleBasic(this.getApplicationContext(),this);
+        mBleBasic.startLeScanning();
     }
 
     @Override
@@ -106,6 +138,9 @@ public class navigationActivity extends AppCompatActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.navigation, menu);
+
+        SwitchCompat discoverable = (SwitchCompat) findViewById(R.id.switcher);
+        discoverable.setOnCheckedChangeListener(this);
         return true;
     }
 
@@ -175,18 +210,23 @@ public class navigationActivity extends AppCompatActivity
                         public void onSuccess(Location location) {
                             // Got last known location. In some rare situations this can be null.
                             if (location != null) {
-                                AdvertisementPayload outPayload = new AdvertisementPayload();
-                                outPayload.setUserID(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("userName", ""));//(getIntent().getStringExtra("userName"));
-                                outPayload.setLocation(location);
-                                byte[] out = outPayload.getPayload();
-                                BleBasic.startLeAdvertising(out);
+//                                AdvertisementPayload outPayload = new AdvertisementPayload();
+//                                outPayload.setUserID(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString("userName", ""));//(getIntent().getStringExtra("userName"));
+//                                outPayload.setLocation(location);
+//                                byte[] out = outPayload.getPayload();
+//                                BleBasic.startLeAdvertising(out);
+
                             } else {
                                 throw new RuntimeException("Switch:" + " null location");
                             }
                         }
                     });
+
+            mAdvPayload.setSrcID(myID);
+            mAdvPayload.setDestID("NULL");
+            mBleBasic.restartLeAdvertising(mAdvPayload.getPayload());
         }else{
-            BleBasic.stopAdvertising();
+            mBleBasic.stopAdvertising();
         }
     }
 
@@ -194,13 +234,14 @@ public class navigationActivity extends AppCompatActivity
         final EditText editText = new EditText(this);
         new AlertDialog.Builder(this)
                 .setTitle("Send Distress Signal?")
-                .setMessage("Please enter your distress message:")
+                .setMessage("Please enter your distress message: (20 bytes limit)")
                 .setView(editText)
                 .setPositiveButton("Send", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         // TODO: send the distress signal with BlueNet
                         // use this to get text from prompt: editText.getText();
+                        mBleBasic.startLeAdvertising(editText.getText().toString().getBytes(StandardCharsets.UTF_8));
                         showToast("Distress signal sent!");
                         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
                         drawer.closeDrawer(GravityCompat.START);

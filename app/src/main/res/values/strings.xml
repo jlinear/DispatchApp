@@ -8,6 +8,10 @@
 
     <string name="action_settings">Settings</string>
 
+
+    <string name="set_message_type">Set Message Type:</string>
+
+
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="about_fragment">The Dispatch App is developed based on BlueNet framework by M-Lab from University of Notre Dame.</string>
