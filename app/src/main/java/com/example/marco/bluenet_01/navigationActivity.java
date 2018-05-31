@@ -40,6 +40,7 @@ import java.util.UUID;
 
 import nd.edu.bluenet_stack.AdvertisementPayload;
 
+
 public class navigationActivity extends AppCompatActivity
         implements
         mapsFragment.OnFragmentInteractionListener,
@@ -224,7 +225,7 @@ public class navigationActivity extends AppCompatActivity
 
             mAdvPayload.setSrcID(myID);
             mAdvPayload.setDestID("NULL");
-            mBleBasic.restartLeAdvertising(mAdvPayload.getPayload());
+//            mBleBasic.restartLeAdvertising(mAdvPayload.getPayload());
         }else{
             mBleBasic.stopAdvertising();
         }
