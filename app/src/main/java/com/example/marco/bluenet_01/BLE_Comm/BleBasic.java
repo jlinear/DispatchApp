@@ -238,7 +238,7 @@ public class BleBasic {
             if(!ID_Loc_Dict.containsKey(userID)){
                 Location temp_loc = null;
                 ID_Loc_Dict.put(userID,temp_loc);
-                Log.d(INFO_TAG,"Found a new user nearby!" + " " + userID);
+                Log.d(INFO_TAG,"Found a new user nearby!" + " " + userID + result.getDevice().getAddress());
 
             }
         }

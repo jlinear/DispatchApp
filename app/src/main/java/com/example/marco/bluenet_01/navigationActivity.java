@@ -37,6 +37,9 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
+import nd.edu.bluenet_stack.BlueNetIFace;
+import nd.edu.bluenet_stack.Group;
+import nd.edu.bluenet_stack.Result;
 
 
 public class navigationActivity extends AppCompatActivity
@@ -109,8 +112,60 @@ public class navigationActivity extends AppCompatActivity
         myID = PreferenceManager.getDefaultSharedPreferences(this).getString("userName", "");
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        mBleBasic = new BleBasic(this.getApplicationContext(),this);
-        mBleBasic.startLeScanning();
+
+        BlueNetIFace mBluenet = new BlueNetIFace() {
+            @Override
+            public String getMyID() {
+                return null;
+            }
+
+            @Override
+            public int write(String destID, String input) {
+                return 0;
+            }
+
+            @Override
+            public void regCallback(Result resultHandler) {
+
+            }
+
+            @Override
+            public String[] getNeighbors() {
+                return new String[0];
+            }
+
+            @Override
+            public String getLocation(String id) {
+                return null;
+            }
+
+            @Override
+            public Group[] getGroups() {
+                return new Group[0];
+            }
+
+            @Override
+            public void addGroup(String name) {
+
+            }
+
+            @Override
+            public void addGroup(float lat, float lon, float rad) {
+
+            }
+
+            @Override
+            public boolean joinGroup(String id) {
+                return false;
+            }
+
+            @Override
+            public boolean leaveGroup(String id) {
+                return false;
+            }
+        };
+//        mBleBasic = new BleBasic(this.getApplicationContext(),this);
+//        mBleBasic.startLeScanning();
     }
 
     @Override
