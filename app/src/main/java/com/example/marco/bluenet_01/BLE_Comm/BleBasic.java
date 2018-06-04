@@ -1,4 +1,4 @@
-package com.example.marco.bluenet_01;
+package com.example.marco.bluenet_01.BLE_Comm;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -21,6 +21,8 @@ import android.os.Handler;
 import android.os.ParcelUuid;
 import android.util.Log;
 
+import com.example.marco.bluenet_01.BuildConfig;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,8 +42,8 @@ public class BleBasic {
     private static final String INFO_TAG = "APP_INFO";
 
     /**** **** variable declaration **** ****/
-    private Context context;
-    private Activity activity;
+    public Context context;
+    public Activity activity;
     String originalName;
 
     private static final int REQUEST_ENABLE_BT = 1;
@@ -71,7 +73,7 @@ public class BleBasic {
     /**** **** end of variable declaration **** ****/
 
 
-    BleBasic(Context context, Activity activity){
+    public BleBasic(Context context, Activity activity){
         this.context = context;
         this.activity = activity;
         this.originalName = activity.getSharedPreferences(BuildConfig.APPLICATION_ID, Context.MODE_PRIVATE).getString("originalName", "");
@@ -119,7 +121,7 @@ public class BleBasic {
     }
 
     /**** **** BLE ADVERTISE **** ****/
-    protected void startLeAdvertising(byte[] data_out){
+    public void startLeAdvertising(byte[] data_out){
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY) //3 modes: LOW_POWER, BALANCED, LOW_LATENCY
                 .setConnectable(true)
@@ -154,13 +156,13 @@ public class BleBasic {
         }
     };
 
-    protected void stopAdvertising() {
+    public void stopAdvertising() {
         if (mBluetoothLeAdvertiser == null) return;
         mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
         Log.i(INFO_TAG,"LE Advertise Stopped.");
     }
 
-    protected void restartLeAdvertising(byte[] data_out) {
+    public void restartLeAdvertising(byte[] data_out) {
         stopAdvertising();
         startLeAdvertising(data_out);
     }
@@ -168,7 +170,7 @@ public class BleBasic {
 
 
     /**** **** BLE SCAN **** ****/
-    protected void startLeScanning(){
+    public void startLeScanning(){
         //scan filters
         ScanFilter ResultsFilter = new ScanFilter.Builder()
                 //.setDeviceAddress(string)
@@ -199,7 +201,7 @@ public class BleBasic {
         mBluetoothLeScanner.startScan(filters, settings, mScanCallback);
     }
 
-    protected void stopScanning() {
+    public void stopScanning() {
         if (mBluetoothLeScanner != null)
             mBluetoothLeScanner.stopScan(mScanCallback);
         Log.i("BLE","LE scan stopped");
@@ -222,6 +224,7 @@ public class BleBasic {
             }
         }
 
+
         @Override
         public void onScanFailed(int errorCode) {
             Log.e(ERR_TAG, "LE Scan Failed: " + errorCode);
@@ -236,6 +239,7 @@ public class BleBasic {
                 Location temp_loc = null;
                 ID_Loc_Dict.put(userID,temp_loc);
                 Log.d(INFO_TAG,"Found a new user nearby!" + " " + userID);
+
             }
         }
     };

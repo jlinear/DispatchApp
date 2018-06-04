@@ -19,18 +19,17 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SwitchCompat;
 import android.support.v7.widget.Toolbar;
-import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.marco.bluenet_01.BLE_Comm.BleBasic;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -38,7 +37,6 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-import nd.edu.bluenet_stack.AdvertisementPayload;
 
 
 public class navigationActivity extends AppCompatActivity
@@ -54,7 +52,7 @@ public class navigationActivity extends AppCompatActivity
     private FusedLocationProviderClient mFusedLocationClient;
     public BleBasic mBleBasic;
     private String myID;
-    AdvertisementPayload mAdvPayload = new AdvertisementPayload();
+
 
     private CentralService mCentral;
     private PeripheralService mPeripheral;
@@ -223,8 +221,8 @@ public class navigationActivity extends AppCompatActivity
                         }
                     });
 
-            mAdvPayload.setSrcID(myID);
-            mAdvPayload.setDestID("NULL");
+//            mAdvPayload.setSrcID(myID);
+//            mAdvPayload.setDestID("NULL");
 //            mBleBasic.restartLeAdvertising(mAdvPayload.getPayload());
         }else{
             mBleBasic.stopAdvertising();
