@@ -2,7 +2,6 @@ package com.example.marco.bluenet_01;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.ColorDrawable;
@@ -30,20 +29,13 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.marco.bluenet_01.BLE_Comm.BleBasic;
-
 import com.example.marco.bluenet_01.BLE_Comm.BleReader;
 import com.example.marco.bluenet_01.BLE_Comm.BleWriter;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-
-import nd.edu.bluenet_stack.BlueNetIFace;
-import nd.edu.bluenet_stack.Group;
-import nd.edu.bluenet_stack.Result;
 
 
 public class navigationActivity extends AppCompatActivity
@@ -61,8 +53,6 @@ public class navigationActivity extends AppCompatActivity
     private String myID;
 
 
-    private CentralService mCentral;
-    private PeripheralService mPeripheral;
 
     private BleWriter mWriter;
     private BleReader mReader;
