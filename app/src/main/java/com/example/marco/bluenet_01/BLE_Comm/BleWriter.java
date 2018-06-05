@@ -64,7 +64,7 @@ public class BleWriter extends LayerBase
     private static final int REQUEST_ENABLE_BT = 1;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
-    private BluetoothGattServer mGattServer;
+    public BluetoothGattServer mGattServer;
     private BluetoothGattService mBluetoothGattService;
     private BluetoothGattCharacteristic mMSGChar;
 
@@ -102,11 +102,12 @@ public class BleWriter extends LayerBase
         mBluetoothGattService = new BluetoothGattService(MSG_SERVICE_UUID,
                 BluetoothGattService.SERVICE_TYPE_PRIMARY);
         mMSGChar = new BluetoothGattCharacteristic(MSG_CHAR_UUID,
-                BluetoothGattCharacteristic.PROPERTY_WRITE| BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+                BluetoothGattCharacteristic.PROPERTY_READ| BluetoothGattCharacteristic.PROPERTY_NOTIFY,
                 BluetoothGattCharacteristic.PERMISSION_WRITE|BluetoothGattCharacteristic.PERMISSION_READ);
         BluetoothGattDescriptor mDescriptor = new BluetoothGattDescriptor(CLIENT_CHAR_CONFI_UUID,
                 (BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE));
         mMSGChar.addDescriptor(mDescriptor);
+        mMSGChar.setValue("This is a very very very long message for testing purpose! I guess it is surely longer than 20 bytes... ? `~!@#$%^&*()_+></\\][';.,/=-LOL");
         mBluetoothGattService.addCharacteristic(mMSGChar);
         mGattServer.addService(mBluetoothGattService);
 

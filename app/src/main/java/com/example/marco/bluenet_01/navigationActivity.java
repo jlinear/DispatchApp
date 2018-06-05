@@ -2,6 +2,7 @@ package com.example.marco.bluenet_01;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.ColorDrawable;
@@ -151,6 +152,14 @@ public class navigationActivity extends AppCompatActivity
     }
 
     @Override
+    public void onDestroy(){
+        super.onDestroy();
+        mReader.mBluetoothGatt.disconnect();
+        mWriter.mGattServer.close();
+
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.navigation, menu);
@@ -258,6 +267,10 @@ public class navigationActivity extends AppCompatActivity
                         // TODO: send the distress signal with BlueNet
                         // use this to get text from prompt: editText.getText();
 //                        mBleBasic.startLeAdvertising(editText.getText().toString().getBytes(StandardCharsets.UTF_8));
+                        /**** Test large char read  ****/
+                        mReader.readLargeChar();
+
+
                         showToast("Distress signal sent!");
                         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
                         drawer.closeDrawer(GravityCompat.START);

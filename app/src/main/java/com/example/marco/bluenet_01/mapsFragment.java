@@ -168,6 +168,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         }
     }
 
+
     LocationCallback mLocationCallback = new LocationCallback(){
         @Override
         public void onLocationResult(LocationResult locationResult) {

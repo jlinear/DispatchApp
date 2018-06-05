@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import nd.edu.bluenet_stack.AdvertisementPayload;
 import nd.edu.bluenet_stack.LayerBase;
@@ -54,6 +55,10 @@ public class BleReader extends LayerBase
 
     public static final ParcelUuid BASIC_AD =   //used as an agreement for ad/sc
             ParcelUuid.fromString("00001860-0000-1000-8000-00805f9b34fb");
+    private static final UUID MSG_SERVICE_UUID = UUID
+            .fromString("00001869-0000-1000-8000-00805f9b34fb");
+    private static final UUID MSG_CHAR_UUID = UUID.
+            fromString("00002a09-0000-1000-8000-00805f9b34fb");
 
     public Context context;
     public Activity activity;
@@ -222,6 +227,7 @@ public class BleReader extends LayerBase
 //                    gatt.setCharacteristicNotification(gatt.getService(MSG_SERVICE_UUID).getCharacteristic(MSG_CHAR_UUID),true);
 //                }
                 Log.d(DEBUG_TAG,mBluetoothGattService.get(2).getUuid().toString());
+                gatt.readCharacteristic(gatt.getService(MSG_SERVICE_UUID).getCharacteristic(MSG_CHAR_UUID));
             } else {
                 Log.e(ERR_TAG, "onServicesDiscovered received: " + status);
             }
@@ -232,6 +238,7 @@ public class BleReader extends LayerBase
                                          BluetoothGattCharacteristic characteristic,
                                          int status) {
             if (status == GATT_SUCCESS) {
+                Log.d(DEBUG_TAG,"read returns: " + new String(characteristic.getValue(), StandardCharsets.UTF_8));
                 //broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
             }
         }
@@ -280,6 +287,13 @@ public class BleReader extends LayerBase
             mBluetoothGatt = mDevice.connectGatt(context, false, mGattCallback);
             return true;
 
+    }
+
+    public void readLargeChar(){
+        if(mConnectionState == STATE_CONNECTED){
+            BluetoothGattCharacteristic mChar = mBluetoothGatt.getService(MSG_SERVICE_UUID).getCharacteristic(MSG_CHAR_UUID);
+            mBluetoothGatt.readCharacteristic(mChar);
+        }
     }
     /**** **** End of Gatt Client **** ****/
 
