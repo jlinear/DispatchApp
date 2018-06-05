@@ -2,7 +2,13 @@ package com.example.marco.bluenet_01.BLE_Comm;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
@@ -20,12 +26,17 @@ import com.example.marco.bluenet_01.BuildConfig;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import nd.edu.bluenet_stack.AdvertisementPayload;
 import nd.edu.bluenet_stack.LayerBase;
 import nd.edu.bluenet_stack.Query;
 import nd.edu.bluenet_stack.Reader;
+
+import static android.bluetooth.BluetoothGatt.GATT_SUCCESS;
 
 /**
  * Created by jerry on 6/4/18.
@@ -39,6 +50,7 @@ public class BleReader extends LayerBase
 
     private static final String ERR_TAG = "FATAL ERROR";
     private static final String INFO_TAG = "APP_INFO";
+    private static final String DEBUG_TAG = "DEBUG";
 
     public static final ParcelUuid BASIC_AD =   //used as an agreement for ad/sc
             ParcelUuid.fromString("00001860-0000-1000-8000-00805f9b34fb");
@@ -50,6 +62,17 @@ public class BleReader extends LayerBase
     private static final int REQUEST_ENABLE_BT = 1;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeScanner mBluetoothLeScanner;
+    public BluetoothGatt mBluetoothGatt;
+//    private BluetoothGattCallback mGattCallback;
+
+    private int mConnectionState = STATE_DISCONNECTED;
+    private static final int STATE_DISCONNECTED = 0;
+    private static final int STATE_CONNECTING = 1;
+    private static final int STATE_CONNECTED = 2;
+
+    public List<BluetoothGattService> mBluetoothGattService;
+//    public HashMap<BluetoothDevice, byte[]> mBleDevicesDict;
+    public Set<BluetoothDevice> mBleDeviceSet;
 
 
     public BleReader(Context context, Activity activity){
@@ -82,6 +105,9 @@ public class BleReader extends LayerBase
         }
 
         startLeScanning();
+//        mBleDevicesDict = new HashMap<BluetoothDevice, byte[]>();
+        mBleDeviceSet = new HashSet<BluetoothDevice>();
+
     }
 
     /**** **** BLE SCAN **** ****/
@@ -146,6 +172,13 @@ public class BleReader extends LayerBase
         }
 
         private void processResult(ScanResult result){
+            BluetoothDevice tempDevice = result.getDevice();
+            if(!mBleDeviceSet.contains(tempDevice)){
+                mBleDeviceSet.add(tempDevice);
+                Log.d(DEBUG_TAG,"Found a new device " + result.getDevice().getAddress());
+                connect(tempDevice);
+            }
+
 //            byte[] payload = result.getScanRecord().getServiceData().get(PAYLOAD_SERVICE);
 //            scan_Payload.fromBytes(payload);
 ////            Log.d(INFO_TAG,"scan payload " + new String(payload,StandardCharsets.UTF_8));
@@ -157,9 +190,98 @@ public class BleReader extends LayerBase
 //
 //            }
 //        }
-    }
+        }
     };
     /**** **** end of BLE SCAN **** ****/
+
+
+    /**** **** GATT Client **** ****/
+    private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                mConnectionState = STATE_CONNECTED;
+//                broadcastUpdate("connected");
+                Log.d(DEBUG_TAG, "connected to " + gatt.getDevice().getAddress());
+                // Attempts to discover services after successful connection.
+                Log.d(DEBUG_TAG, "Attempting to start service discovery:" +
+                        mBluetoothGatt.discoverServices());
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                mConnectionState = STATE_DISCONNECTED;
+                Log.d(DEBUG_TAG, "disconnected: " + gatt.getDevice().getAddress());
+            }
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            if (status == GATT_SUCCESS) {
+                //broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
+                Log.i(INFO_TAG,"GATT service discovered!");
+                mBluetoothGattService = gatt.getServices();
+//                if(gatt.getService(MSG_SERVICE_UUID) != null){
+//                    gatt.setCharacteristicNotification(gatt.getService(MSG_SERVICE_UUID).getCharacteristic(MSG_CHAR_UUID),true);
+//                }
+                Log.d(DEBUG_TAG,mBluetoothGattService.get(2).getUuid().toString());
+            } else {
+                Log.e(ERR_TAG, "onServicesDiscovered received: " + status);
+            }
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt,
+                                         BluetoothGattCharacteristic characteristic,
+                                         int status) {
+            if (status == GATT_SUCCESS) {
+                //broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            }
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt,
+                                            BluetoothGattCharacteristic characteristic) {
+//            broadcastUpdate("char_changed", characteristic);
+            Log.d("CENTRAL","char changed");
+//                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+        }
+
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status){
+            if(status == GATT_SUCCESS){
+                Log.d("CENTRAL", "write to P");
+            }
+
+        }
+    };
+
+    public boolean connect(final BluetoothDevice mDevice){
+        if (mBluetoothAdapter == null) {
+            Log.w(ERR_TAG, "BluetoothAdapter not initialized.");
+            return false;
+        }
+
+        // Previously connected device.  Try to reconnect.
+        if (mBluetoothGatt != null) {
+            Log.d(INFO_TAG, "Trying to use an existing mBluetoothGatt for connection.");
+            if (mBluetoothGatt.connect()) {
+                mConnectionState = STATE_CONNECTING;
+                return true;
+            } else {
+                return false;
+            }
+        }
+//
+//        final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice().getAddress();
+//        if (device == null) {
+//            Log.w(TAG, "Device not found.  Unable to connect.");
+//            return false;
+//        }
+
+            //BluetoothDevice cdevice = mBluetoothAdapter.getRemoteDevice(mDevice.getAddress());
+            mBluetoothGatt = mDevice.connectGatt(context, false, mGattCallback);
+            return true;
+
+    }
+    /**** **** End of Gatt Client **** ****/
 
     @Override
     public int read(String src, byte[] message) {

@@ -61,7 +61,6 @@ public class BleWriter extends LayerBase
 
 
 
-
     private static final int REQUEST_ENABLE_BT = 1;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
