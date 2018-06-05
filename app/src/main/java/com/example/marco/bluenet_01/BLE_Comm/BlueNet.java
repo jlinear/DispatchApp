@@ -1,5 +1,8 @@
 package com.example.marco.bluenet_01.BLE_Comm;
 
+import android.app.Activity;
+import android.content.Context;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Objects;
@@ -9,30 +12,31 @@ import nd.edu.bluenet_stack.Result;
 import nd.edu.bluenet_stack.LayerBase;
 import nd.edu.bluenet_stack.RoutingManager;
 import nd.edu.bluenet_stack.GroupManager;
+import nd.edu.bluenet_stack.Group;
 import nd.edu.bluenet_stack.LocationManager;
 import nd.edu.bluenet_stack.MessageLayer;
 import nd.edu.bluenet_stack.Query;
 import nd.edu.bluenet_stack.RandomString;
 import nd.edu.bluenet_stack.Reader;
 import nd.edu.bluenet_stack.Writer;
-
-import com.google.android.gms.location.LocationServices;
+import nd.edu.bluenet_stack.AdvertisementPayload;
 
 public class BlueNet implements BlueNetIFace {
     private Result mResultHandler = null;
 
     private ArrayList<LayerBase> mLayers = new ArrayList<>();
 
-    private LayerBase mRoute = new RoutingManager();
-    private LayerBase mGrp = new GroupManager();
-    private LayerBase mLoc = new LocationManager();
-    private LayerBase mMsg = new MessageLayer();
-    private LayerBase mBLEW = new BLEWriter();
-    private LayerBase mBLER = new BLEReader();
+    private RoutingManager mRoute = new RoutingManager();
+    private GroupManager mGrp = new GroupManager();
+    private LocationManager mLoc = new LocationManager();
+    private MessageLayer mMsg = new MessageLayer();
+    private BleWriter mBLEW;
+    private BleReader mBLER;
 
     private Query mQuery;
     private RandomString mRandString = new RandomString(4);
     private String mID;
+
 
     /**
      * Initialize the ProtocolContainer by add all of the layers to an
@@ -48,7 +52,10 @@ public class BlueNet implements BlueNetIFace {
      * layers
      *
      */
-    public BlueNet () {
+    public BlueNet (Context context, Activity activity) {
+
+        mBLEW = new BleWriter(context, activity);
+        mBLER = new BleReader(context, activity);
         mLayers.add(mRoute);
         mLayers.add(mGrp);
         mLayers.add(mLoc);
@@ -126,7 +133,7 @@ public class BlueNet implements BlueNetIFace {
 
         //the dummy ble layer get AdvertisementPayloads and passes them to
         //the message layer
-        mBLER.setReadCB((Reader)mMsg);
+        mBLER.setReadCB(mMsg);
 
         //The message layer writes AdvertisementPayloads to the
         //dummy ble layer
