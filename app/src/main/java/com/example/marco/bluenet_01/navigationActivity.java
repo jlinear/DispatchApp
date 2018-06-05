@@ -31,6 +31,7 @@ import android.widget.Toast;
 
 import com.example.marco.bluenet_01.BLE_Comm.BleBasic;
 
+import com.example.marco.bluenet_01.BLE_Comm.BleReader;
 import com.example.marco.bluenet_01.BLE_Comm.BleWriter;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -63,6 +64,7 @@ public class navigationActivity extends AppCompatActivity
     private PeripheralService mPeripheral;
 
     private BleWriter mWriter;
+    private BleReader mReader;
 
     Fragment mapsFragment = new mapsFragment();
 
@@ -120,6 +122,7 @@ public class navigationActivity extends AppCompatActivity
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         mWriter = new BleWriter(this,this);
+        mReader = new BleReader(this, this);
 
 
 
