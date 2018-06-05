@@ -102,12 +102,13 @@ public class BleWriter extends LayerBase
         mBluetoothGattService = new BluetoothGattService(MSG_SERVICE_UUID,
                 BluetoothGattService.SERVICE_TYPE_PRIMARY);
         mMSGChar = new BluetoothGattCharacteristic(MSG_CHAR_UUID,
-                BluetoothGattCharacteristic.PROPERTY_READ| BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+                BluetoothGattCharacteristic.PROPERTY_READ| BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
                 BluetoothGattCharacteristic.PERMISSION_WRITE|BluetoothGattCharacteristic.PERMISSION_READ);
         BluetoothGattDescriptor mDescriptor = new BluetoothGattDescriptor(CLIENT_CHAR_CONFI_UUID,
                 (BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE));
         mMSGChar.addDescriptor(mDescriptor);
-        mMSGChar.setValue("This is a very very very long message for testing purpose! I guess it is surely longer than 20 bytes... ? `~!@#$%^&*()_+></\\][';.,/=-LOL");
+        mMSGChar.setValue("This is a very very very long message for testing purpose! I guess it is surely longer than 20 bytes...");
+//        mMSGChar.setValue("Short");
         mBluetoothGattService.addCharacteristic(mMSGChar);
         mGattServer.addService(mBluetoothGattService);
 
@@ -204,6 +205,19 @@ public class BleWriter extends LayerBase
         }
 
         @Override
+        public void onCharacteristicReadRequest (BluetoothDevice device,
+                                                 int requestId,
+                                                 int offset,
+                                                 BluetoothGattCharacteristic characteristic){
+            super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
+
+            mGattServer.sendResponse(device, requestId, 0,
+            /* No need to respond with an offset */ 0,
+            /* No need to respond with a value */ characteristic.getValue());
+        }
+
+
+        @Override
         public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId,
                                                  BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded,
                                                  int offset, byte[] value) {
@@ -211,7 +225,7 @@ public class BleWriter extends LayerBase
                     responseNeeded, offset, value);
 //            rec_msg = new String(value, StandardCharsets.UTF_8);
 //            w_state.setBoo(!b_state);
-//            Log.v("chatFrag", "Characteristic Write request: " + Arrays.toString(value) + rec_msg);
+            Log.v("chatFrag", "Characteristic Write request: " + Arrays.toString(value));
 
 
             int status = 0;
