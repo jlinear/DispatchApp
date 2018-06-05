@@ -30,6 +30,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.marco.bluenet_01.BLE_Comm.BleBasic;
+
+import com.example.marco.bluenet_01.BLE_Comm.BleReader;
+import com.example.marco.bluenet_01.BLE_Comm.BleWriter;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -37,6 +40,9 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
+import nd.edu.bluenet_stack.BlueNetIFace;
+import nd.edu.bluenet_stack.Group;
+import nd.edu.bluenet_stack.Result;
 
 
 public class navigationActivity extends AppCompatActivity
@@ -50,12 +56,15 @@ public class navigationActivity extends AppCompatActivity
         CompoundButton.OnCheckedChangeListener{
 
     private FusedLocationProviderClient mFusedLocationClient;
-    public BleBasic mBleBasic;
+//    public BleBasic mBleBasic;
     private String myID;
 
 
     private CentralService mCentral;
     private PeripheralService mPeripheral;
+
+    private BleWriter mWriter;
+    private BleReader mReader;
 
     Fragment mapsFragment = new mapsFragment();
 
@@ -70,6 +79,9 @@ public class navigationActivity extends AppCompatActivity
             fromString("00002a08-0000-1000-8000-00805f9b34fb");
     private static final UUID SCLIENT_CHAR_CONFI_UUID = UUID.
             fromString("00002a07-0000-1000-8000-00805f9b34fb");
+
+
+
 
 
     @Override
@@ -109,8 +121,13 @@ public class navigationActivity extends AppCompatActivity
         myID = PreferenceManager.getDefaultSharedPreferences(this).getString("userName", "");
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        mBleBasic = new BleBasic(this.getApplicationContext(),this);
-        mBleBasic.startLeScanning();
+        mWriter = new BleWriter(this,this);
+        mReader = new BleReader(this, this);
+
+
+
+//        mBleBasic = new BleBasic(this.getApplicationContext(),this);
+//        mBleBasic.startLeScanning();
     }
 
     @Override
@@ -225,7 +242,7 @@ public class navigationActivity extends AppCompatActivity
 //            mAdvPayload.setDestID("NULL");
 //            mBleBasic.restartLeAdvertising(mAdvPayload.getPayload());
         }else{
-            mBleBasic.stopAdvertising();
+//            mBleBasic.stopAdvertising();
         }
     }
 
@@ -240,7 +257,7 @@ public class navigationActivity extends AppCompatActivity
                     public void onClick(DialogInterface dialogInterface, int i) {
                         // TODO: send the distress signal with BlueNet
                         // use this to get text from prompt: editText.getText();
-                        mBleBasic.startLeAdvertising(editText.getText().toString().getBytes(StandardCharsets.UTF_8));
+//                        mBleBasic.startLeAdvertising(editText.getText().toString().getBytes(StandardCharsets.UTF_8));
                         showToast("Distress signal sent!");
                         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
                         drawer.closeDrawer(GravityCompat.START);
