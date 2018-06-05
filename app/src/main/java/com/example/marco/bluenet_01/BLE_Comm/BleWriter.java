@@ -107,7 +107,8 @@ public class BleWriter extends LayerBase
         BluetoothGattDescriptor mDescriptor = new BluetoothGattDescriptor(CLIENT_CHAR_CONFI_UUID,
                 (BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE));
         mMSGChar.addDescriptor(mDescriptor);
-        mMSGChar.setValue("This is a very very very long message for testing purpose! I guess it is surely longer than 20 bytes...");
+        String sample_msg = "This is a very very very long message for testing purpose! I guess it is surely longer than 20 bytes...";
+        mMSGChar.setValue(sample_msg);
 //        mMSGChar.setValue("Short");
         mBluetoothGattService.addCharacteristic(mMSGChar);
         mGattServer.addService(mBluetoothGattService);
@@ -211,9 +212,22 @@ public class BleWriter extends LayerBase
                                                  BluetoothGattCharacteristic characteristic){
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
 
-            mGattServer.sendResponse(device, requestId, 0,
-            /* No need to respond with an offset */ 0,
-            /* No need to respond with a value */ characteristic.getValue());
+
+            byte[] msg = characteristic.getValue();
+            int size = msg.length - offset;
+            byte[] response = new byte[size];
+
+            for (int i = offset; i < msg.length; i++) {
+                response[i - offset] = characteristic.getValue()[i];
+            }
+            mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, response);
+
+
+
+
+//            mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS,
+//            /* No need to respond with an offset */ 0,
+//            /* No need to respond with a value */ characteristic.getValue());
         }
 
 
