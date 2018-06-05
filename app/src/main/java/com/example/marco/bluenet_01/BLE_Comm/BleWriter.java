@@ -2,6 +2,13 @@ package com.example.marco.bluenet_01.BLE_Comm;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattServer;
+import android.bluetooth.BluetoothGattServerCallback;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
@@ -16,6 +23,9 @@ import android.util.Log;
 import com.example.marco.bluenet_01.BuildConfig;
 
 import java.net.ContentHandler;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.UUID;
 
 import nd.edu.bluenet_stack.AdvertisementPayload;
 import nd.edu.bluenet_stack.LayerBase;
@@ -36,19 +46,28 @@ public class BleWriter extends LayerBase
     private static final String ERR_TAG = "FATAL ERROR";
     private static final String INFO_TAG = "APP_INFO";
 
-    public static final ParcelUuid BASIC_AD =   //used as an agreement for ad/sc
-            ParcelUuid.fromString("00001860-0000-1000-8000-00805f9b34fb");
-//    public static String PAYLOAD_CHARACTERISTIC_CONFIG =
-//            "00002968-0000-1000-8000-00805f9b34fb";
-
     public Context context;
     public Activity activity;
     String originalName;
 
+    public static final ParcelUuid BASIC_AD =   //used as an agreement for ad/sc
+            ParcelUuid.fromString("00001860-0000-1000-8000-00805f9b34fb");
+    private static final UUID MSG_SERVICE_UUID = UUID
+            .fromString("00001869-0000-1000-8000-00805f9b34fb");
+    private static final UUID MSG_CHAR_UUID = UUID.
+            fromString("00002a09-0000-1000-8000-00805f9b34fb");
+    private static final UUID CLIENT_CHAR_CONFI_UUID = UUID.
+            fromString("00002a08-0000-1000-8000-00805f9b34fb");
+
+
+
+
     private static final int REQUEST_ENABLE_BT = 1;
-//    private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
+    private BluetoothGattServer mGattServer;
+    private BluetoothGattService mBluetoothGattService;
+    private BluetoothGattCharacteristic mMSGChar;
 
     public BleWriter(Context context, Activity activity){
         this.context = context.getApplicationContext();
@@ -80,6 +99,17 @@ public class BleWriter extends LayerBase
         }
 
         startLeAdvertising();
+        mGattServer = mBluetoothManager.openGattServer(context,mGattServerCallback);
+        mBluetoothGattService = new BluetoothGattService(MSG_SERVICE_UUID,
+                BluetoothGattService.SERVICE_TYPE_PRIMARY);
+        mMSGChar = new BluetoothGattCharacteristic(MSG_CHAR_UUID,
+                BluetoothGattCharacteristic.PROPERTY_WRITE| BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+                BluetoothGattCharacteristic.PERMISSION_WRITE|BluetoothGattCharacteristic.PERMISSION_READ);
+        BluetoothGattDescriptor mDescriptor = new BluetoothGattDescriptor(CLIENT_CHAR_CONFI_UUID,
+                (BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE));
+        mMSGChar.addDescriptor(mDescriptor);
+        mBluetoothGattService.addCharacteristic(mMSGChar);
+        mGattServer.addService(mBluetoothGattService);
 
     }
 
@@ -158,6 +188,41 @@ public class BleWriter extends LayerBase
         startLeAdvertising();
     }
     /**** **** end of BLE ADVERTISE **** ****/
+
+
+    /**** **** GATT Server **** ****/
+    private final BluetoothGattServerCallback mGattServerCallback = new BluetoothGattServerCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
+            super.onConnectionStateChange(device, status, newState);
+            if (status == BluetoothGatt.GATT_SUCCESS){
+                if (newState == BluetoothGatt.STATE_CONNECTED){
+                    //mDevice = device;
+                    Log.d(INFO_TAG,"Gatt Server connected.");
+                }
+            }
+        }
+
+        @Override
+        public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId,
+                                                 BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded,
+                                                 int offset, byte[] value) {
+            super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite,
+                    responseNeeded, offset, value);
+//            rec_msg = new String(value, StandardCharsets.UTF_8);
+//            w_state.setBoo(!b_state);
+//            Log.v("chatFrag", "Characteristic Write request: " + Arrays.toString(value) + rec_msg);
+
+
+            int status = 0;
+            if (responseNeeded) {
+                mGattServer.sendResponse(device, requestId, status,
+            /* No need to respond with an offset */ 0,
+            /* No need to respond with a value */ null);
+            }
+        }
+    };
+    /**** **** End of Gatt Server **** ****/
 
 
     @Override
