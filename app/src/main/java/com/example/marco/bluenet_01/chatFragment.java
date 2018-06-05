@@ -41,7 +41,7 @@ public class chatFragment extends Fragment {
     TextView headerText;
     String headerTextString;
     ChatView chatView;
-    BlueNetInterface blueNetInterface;
+    //BlueNetInterface blueNetInterface;
     String chattingWith;
 
     public chatFragment() {
