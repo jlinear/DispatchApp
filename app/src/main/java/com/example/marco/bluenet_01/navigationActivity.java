@@ -42,6 +42,7 @@ public class navigationActivity extends AppCompatActivity
         implements
         mapsFragment.OnFragmentInteractionListener,
         chatFragment.OnFragmentInteractionListener,
+        contactFragment.OnFragmentInteractionListener,
         profileFragment.OnFragmentInteractionListener,
         protocolFragment.OnFragmentInteractionListener,
         aboutFragment.OnFragmentInteractionListener,
@@ -170,15 +171,14 @@ public class navigationActivity extends AppCompatActivity
             fragment = new mapsFragment();
         } else if (id == R.id.nav_chat) {
             fragment = new chatFragment();
+        } else if (id == R.id.nav_contact){
+            fragment = new contactFragment();
         } else if (id == R.id.nav_profile) {
             fragment = new profileFragment();
         } else if (id == R.id.nav_protocol) {
             fragment = new protocolFragment();
         } else if (id == R.id.nav_about) {
             fragment = new aboutFragment();
-        } else if (id == R.id.nav_contact){
-            fragment = new contactFragment();
-
         }
 
         //NOTE: Fragment changing code
