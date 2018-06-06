@@ -176,6 +176,9 @@ public class navigationActivity extends AppCompatActivity
             fragment = new protocolFragment();
         } else if (id == R.id.nav_about) {
             fragment = new aboutFragment();
+        } else if (id == R.id.nav_contact){
+            fragment = new contactFragment();
+
         }
 
         //NOTE: Fragment changing code
