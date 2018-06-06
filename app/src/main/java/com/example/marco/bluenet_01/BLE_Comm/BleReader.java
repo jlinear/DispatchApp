@@ -95,6 +95,7 @@ public class BleReader extends LayerBase
    // public Set<BluetoothDevice> mBleDeviceSet;
     private Map<String, BluetoothGatt> mConnectedDeviceMap = new HashMap<String, BluetoothGatt>();
     private Map<String, Integer> mServiceSetupTables = new HashMap<String, Integer>();
+    private Map<String, byte[]> mPendingMessage = new HashMap<String, byte[]>();
     private List<UUID> mCharactericUUIDList = new ArrayList<UUID>();
 
     private UUID getUUID(int msgType) {
@@ -348,6 +349,7 @@ public class BleReader extends LayerBase
                 String address = device.getAddress();
                 BluetoothGatt bluetoothGatt = mConnectedDeviceMap.get(address);
 
+                mPendingMessage.put(address, characteristic.getValue());
             }
         }
 
@@ -355,7 +357,7 @@ public class BleReader extends LayerBase
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
             BluetoothDevice device = gatt.getDevice();
-            String address = device.getAddress();
+            final String address = device.getAddress();
             final BluetoothGatt bluetoothGatt = mConnectedDeviceMap.get(address);
 
             AdvertisementPayload advPayload = new AdvertisementPayload();
@@ -382,8 +384,19 @@ public class BleReader extends LayerBase
                         BluetoothGattCharacteristic characteristic = bluetoothGatt
                                 .getService(BLUENET_SERVICE_UUID)
                                 .getCharacteristic(PULL_MESSAGE_CHAR_UUID);
+                        mPendingMessage.put(address, null);
                         bluetoothGatt.readCharacteristic(characteristic);
-                        return null;
+
+                        //busy wait until message available
+                        while (null == mPendingMessage.get(address)) {
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();  // set interrupt flag
+                            }
+                        }
+
+                        return mPendingMessage.get(address);
                     }
                 });
 
