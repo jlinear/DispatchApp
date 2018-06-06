@@ -20,6 +20,7 @@ import nd.edu.bluenet_stack.RandomString;
 import nd.edu.bluenet_stack.Reader;
 import nd.edu.bluenet_stack.Writer;
 import nd.edu.bluenet_stack.AdvertisementPayload;
+import nd.edu.bluenet_stack.Coordinate;
 
 public class BlueNet implements BlueNetIFace {
     private Result mResultHandler = null;
@@ -210,8 +211,14 @@ public class BlueNet implements BlueNetIFace {
         return ids;
     }
 
-    public String getLocation(String id) {
-        return mQuery.ask("LocMgr.getLocation " + id);
+    public void setLocation(float latitude, float longitude) {
+        mQuery.ask("global.setLocation " + String.valueOf(latitude) + " " + String.valueOf(longitude));
+    }
+
+    public Coordinate getLocation(String id) {
+        String queryRes = mQuery.ask("LocMgr.getLocation " + id);
+        String[] parts = queryRes.split("\\s+");
+        return new Coordinate(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]));
     }
 
     public Group [] getGroups()	{
@@ -236,16 +243,4 @@ public class BlueNet implements BlueNetIFace {
         return Objects.equals("ok", res);
     }
 
-    //************************************************
-    //Other functions that need to taken care of here:
-    //--periodically updating this devices location
-    //************************************************
-
-    private void updateLocation() {
-        //get location from Android Location Services
-        double lat = 0.0;
-        double lon = 0.0;
-
-        String res = mQuery.ask("global.setLocation " + String.valueOf(lat) + " " + String.valueOf(lon));
-    }
 }

@@ -24,12 +24,6 @@
         android:layout_gravity="bottom"
         android:orientation="horizontal"
         android:background="@color/dark_gray">
-        <Button
-            android:id="@+id/mapFindDevicesButton"
-            android:onClick="mapFindDevicesClick"
-            android:layout_width="wrap_content"
-            android:layout_height="50dp"
-            android:text="Find Devices"/>
         <EditText
             android:id="@+id/inputMessageText"
             android:layout_width="0dp"
@@ -42,7 +36,6 @@
             />
         <Button
             android:id="@+id/mapBroadcastButton"
-            android:onClick="mapBroadcastClick"
             android:layout_width="wrap_content"
             android:layout_height="50dp"
             android:layout_weight="0"
