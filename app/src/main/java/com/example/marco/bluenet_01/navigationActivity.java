@@ -54,27 +54,12 @@ public class navigationActivity extends AppCompatActivity
 
     private FusedLocationProviderClient mFusedLocationClient;
     public BlueNet mBluenet;
-    private String myID;
+    public String myID;
 
+    Fragment fragment = null;
 
 
     Fragment mapsFragment = new mapsFragment();
-
-    /**** GATT declarations ****/
-    private static final UUID MSG_SERVICE_UUID = UUID
-            .fromString("00001869-0000-1000-8000-00805f9b34fb");
-    private static final UUID MSG_CHAR_UUID = UUID.
-            fromString("00002a09-0000-1000-8000-00805f9b34fb");
-    private static final UUID SMSG_CHAR_UUID = UUID.
-            fromString("00002a10-0000-1000-8000-00805f9b34fb");
-    private static final UUID CLIENT_CHAR_CONFI_UUID = UUID.
-            fromString("00002a08-0000-1000-8000-00805f9b34fb");
-    private static final UUID SCLIENT_CHAR_CONFI_UUID = UUID.
-            fromString("00002a07-0000-1000-8000-00805f9b34fb");
-
-
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -160,12 +145,13 @@ public class navigationActivity extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-        Fragment fragment = null;
+//        Fragment fragment = null;
 
         if (id == R.id.nav_maps) {
             fragment = new mapsFragment();
         } else if (id == R.id.nav_chat) {
-            fragment = new chatFragment();
+//            fragment = new chatFragment();
+            ChatFragClick();
         } else if (id == R.id.nav_contact){
             fragment = new contactFragment();
         } else if (id == R.id.nav_profile) {
@@ -271,6 +257,37 @@ public class navigationActivity extends AppCompatActivity
                     }
                 })
                 .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    public void ChatFragClick(){
+//        Fragment fragment = null;
+        new AlertDialog.Builder(this)
+                .setTitle("No Chatting Object Selected!")
+                .setMessage("Please choose a user/group on map or from contacts.")
+                .setPositiveButton("On Map", new DialogInterface.OnClickListener(){
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i){
+                        fragment = new mapsFragment();
+                        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+                        ft.replace(R.id.mainFrame, fragment);
+                        ft.commit();
+                        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+                        drawer.closeDrawer(GravityCompat.START);
+                    }
+                })
+                .setNegativeButton("From Contacts", new DialogInterface.OnClickListener(){
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i){
+                        fragment = new contactFragment();
+                        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+                        ft.replace(R.id.mainFrame, fragment);
+                        ft.commit();
+                        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+                        drawer.closeDrawer(GravityCompat.START);
+                    }
+                })
+                .setNeutralButton("Cancel", null)
                 .show();
     }
 
