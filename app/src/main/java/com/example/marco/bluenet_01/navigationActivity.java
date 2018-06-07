@@ -3,9 +3,11 @@ package com.example.marco.bluenet_01;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.NavigationView;
@@ -171,7 +173,10 @@ public class navigationActivity extends AppCompatActivity
         } else if (id == R.id.nav_protocol) {
             fragment = new protocolFragment();
         } else if (id == R.id.nav_about) {
-            fragment = new aboutFragment();
+            //fragment = new aboutFragment();
+            //TODO: change the url here to the project website
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.google.com"));
+            startActivity(browserIntent);
         }
 
         //NOTE: Fragment changing code
