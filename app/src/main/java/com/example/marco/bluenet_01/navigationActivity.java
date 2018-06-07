@@ -31,6 +31,7 @@ import android.widget.Toast;
 
 import com.example.marco.bluenet_01.BLE_Comm.BleReader;
 import com.example.marco.bluenet_01.BLE_Comm.BleWriter;
+import com.example.marco.bluenet_01.BLE_Comm.BlueNet;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -50,13 +51,10 @@ public class navigationActivity extends AppCompatActivity
         CompoundButton.OnCheckedChangeListener{
 
     private FusedLocationProviderClient mFusedLocationClient;
-//    public BleBasic mBleBasic;
+    public BlueNet mBluenet;
     private String myID;
 
 
-
-    private BleWriter mWriter;
-    private BleReader mReader;
 
     Fragment mapsFragment = new mapsFragment();
 
@@ -113,13 +111,8 @@ public class navigationActivity extends AppCompatActivity
         myID = PreferenceManager.getDefaultSharedPreferences(this).getString("userName", "");
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        mWriter = new BleWriter(this,this);
-        mReader = new BleReader(this, this);
+        mBluenet = new BlueNet(this, this);
 
-
-
-//        mBleBasic = new BleBasic(this.getApplicationContext(),this);
-//        mBleBasic.startLeScanning();
     }
 
     @Override

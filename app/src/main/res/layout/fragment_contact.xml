@@ -4,10 +4,51 @@
     android:layout_height="match_parent"
     tools:context="com.example.marco.bluenet_01.contactFragment">
 
+
     <!-- TODO: Update blank fragment layout -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="A list if contact will be placed here!" />
+    <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true" >
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="5dip" >
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:text="PEOPLE"
+                android:textStyle="bold"/>
+
+            <ListView
+                android:id="@+id/list_people"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dip"
+                android:background="#C7E1BA" >
+            </ListView>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dip"
+                android:gravity="center_vertical"
+                android:text="GROUP"
+                android:textStyle="bold"/>
+
+            <ListView
+                android:id="@+id/list_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dip"
+                android:background="#F6E4CC" >
+            </ListView>
+        </LinearLayout>
+
+    </ScrollView>
 
 </FrameLayout>
