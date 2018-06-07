@@ -145,8 +145,8 @@ public class navigationActivity extends AppCompatActivity
     @Override
     public void onDestroy(){
         super.onDestroy();
-        mReader.mBluetoothGatt.disconnect();
-        mWriter.mGattServer.close();
+//        mReader.mBluetoothGatt.disconnect();
+//        mWriter.mGattServer.close();
 
     }
 
@@ -261,7 +261,7 @@ public class navigationActivity extends AppCompatActivity
                         // use this to get text from prompt: editText.getText();
 //                        mBleBasic.startLeAdvertising(editText.getText().toString().getBytes(StandardCharsets.UTF_8));
                         /**** Test large char read  ****/
-                        mReader.readLargeChar();
+//                        mReader.readLargeChar();
 
 
                         showToast("Distress signal sent!");
