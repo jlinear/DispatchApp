@@ -24,14 +24,27 @@ import com.example.marco.bluenet_01.BuildConfig;
 
 import java.net.ContentHandler;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
+
+
+import android.os.Handler;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 
 import nd.edu.bluenet_stack.AdvertisementPayload;
 import nd.edu.bluenet_stack.LayerBase;
-import nd.edu.bluenet_stack.LayerIFace;
 import nd.edu.bluenet_stack.Query;
 import nd.edu.bluenet_stack.Writer;
+
+import static android.bluetooth.BluetoothGattCharacteristic.PERMISSION_READ;
+import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY;
+import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_READ;
+import static android.bluetooth.BluetoothGattDescriptor.PERMISSION_WRITE;
+import static android.bluetooth.BluetoothGattService.SERVICE_TYPE_PRIMARY;
 
 /**
  * Created by jerry on 6/4/18.
@@ -50,12 +63,32 @@ public class BleWriter extends LayerBase
     public Activity activity;
     String originalName;
 
-    public static final ParcelUuid BASIC_AD =   //used as an agreement for ad/sc
-            ParcelUuid.fromString("00001860-0000-1000-8000-00805f9b34fb");
-    private static final UUID MSG_SERVICE_UUID = UUID
-            .fromString("00001869-0000-1000-8000-00805f9b34fb");
-    private static final UUID MSG_CHAR_UUID = UUID.
-            fromString("00002a09-0000-1000-8000-00805f9b34fb");
+//    public static final ParcelUuid BASIC_AD =   //used as an agreement for ad/sc
+//            ParcelUuid.fromString("00001860-0000-1000-8000-00805f9b34fb");
+
+    //service UUID
+    public static final UUID BLUENET_SERVICE_UUID =
+            UUID.fromString("00001860-0000-1000-8000-00805f9b34fb");
+
+
+    //UUIDs for different messsage types
+    private static final UUID SMALL_MSG_CHAR_UUID =
+            UUID.fromString("0000" + AdvertisementPayload.SMALL_MESSAGE_STR + "-0000-1000-8000-00805f9b34fb");
+    private static final UUID REGULAR_MSG_CHAR_UUID =
+            UUID.fromString("0000" + AdvertisementPayload.REGULAR_MESSAGE_STR + "-0000-1000-8000-00805f9b34fb");
+    private static final UUID LOCATION_UPDATE_CHAR_UUID =
+            UUID.fromString("0000" + AdvertisementPayload.LOCATION_UPDATE_STR + "-0000-1000-8000-00805f9b34fb");
+    private static final UUID GROUP_QUERY_CHAR_UUID =
+            UUID.fromString("0000" + AdvertisementPayload.GROUP_QUERY_STR + "-0000-1000-8000-00805f9b34fb");
+    private static final UUID GROUP_UPDATE_CHAR_UUID =
+            UUID.fromString("0000" + AdvertisementPayload.GROUP_UPDATE_STR + "-0000-1000-8000-00805f9b34fb");
+
+    //UUID for messages that are pulled
+    private static final UUID PULL_MESSAGE_CHAR_UUID =
+            UUID.fromString("31517c58-66bf-470c-b662-e352a6c80cba");
+
+
+    //for configuring notifications
     private static final UUID CLIENT_CHAR_CONFI_UUID = UUID.
             fromString("00002a08-0000-1000-8000-00805f9b34fb");
 
@@ -64,9 +97,54 @@ public class BleWriter extends LayerBase
     private static final int REQUEST_ENABLE_BT = 1;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
-    public BluetoothGattServer mGattServer;
-    private BluetoothGattService mBluetoothGattService;
-    private BluetoothGattCharacteristic mMSGChar;
+    private BluetoothGattServer mGattServer;
+
+
+    private Set<BluetoothDevice> mRegisteredDevices = new HashSet<>();
+
+    private ConcurrentLinkedQueue<AdvertisementPayload> mOutQ = new ConcurrentLinkedQueue<>();
+    private boolean mStarted = false;
+    private Handler mHandler = new Handler();
+    private Runnable mRunnable;
+
+    //For handling pulled messages
+    private byte [] mCurrentMsg = null;
+    private Timestamp mLastRead = null;
+    private final long mReadTimeout = 60L;
+
+    private BluetoothGattService createService() {
+        BluetoothGattService service = new BluetoothGattService(BLUENET_SERVICE_UUID, SERVICE_TYPE_PRIMARY);
+
+        // Message type characteristics (read-only, supports subscriptions)
+        BluetoothGattCharacteristic smallMsg = new BluetoothGattCharacteristic(SMALL_MSG_CHAR_UUID, PROPERTY_READ | PROPERTY_NOTIFY, PERMISSION_READ);
+        BluetoothGattDescriptor headerConfig = new BluetoothGattDescriptor(CLIENT_CHAR_CONFI_UUID, PERMISSION_READ | PERMISSION_WRITE);
+        smallMsg.addDescriptor(headerConfig);
+
+        BluetoothGattCharacteristic regMsg = new BluetoothGattCharacteristic(REGULAR_MSG_CHAR_UUID, PROPERTY_READ | PROPERTY_NOTIFY, PERMISSION_READ);
+        regMsg.addDescriptor(headerConfig);
+
+        BluetoothGattCharacteristic locUpdate = new BluetoothGattCharacteristic(LOCATION_UPDATE_CHAR_UUID, PROPERTY_READ | PROPERTY_NOTIFY, PERMISSION_READ);
+        locUpdate.addDescriptor(headerConfig);
+
+        BluetoothGattCharacteristic grpQuery = new BluetoothGattCharacteristic(GROUP_QUERY_CHAR_UUID, PROPERTY_READ | PROPERTY_NOTIFY, PERMISSION_READ);
+        grpQuery.addDescriptor(headerConfig);
+
+        BluetoothGattCharacteristic grpUpdate = new BluetoothGattCharacteristic(GROUP_UPDATE_CHAR_UUID, PROPERTY_READ | PROPERTY_NOTIFY, PERMISSION_READ);
+        grpUpdate.addDescriptor(headerConfig);
+
+        //pull characteristic is read-only with no notify available
+        BluetoothGattCharacteristic pullMsg = new BluetoothGattCharacteristic(PULL_MESSAGE_CHAR_UUID, PROPERTY_READ, PERMISSION_READ);
+
+
+        service.addCharacteristic(smallMsg);
+        service.addCharacteristic(regMsg);
+        service.addCharacteristic(locUpdate);
+        service.addCharacteristic(grpQuery);
+        service.addCharacteristic(grpUpdate);
+        service.addCharacteristic(pullMsg);
+
+        return service;
+    }
 
     public BleWriter(Context context, Activity activity){
         this.context = context.getApplicationContext();
@@ -98,21 +176,39 @@ public class BleWriter extends LayerBase
         }
 
         startLeAdvertising();
-        mGattServer = mBluetoothManager.openGattServer(context,mGattServerCallback);
-        mBluetoothGattService = new BluetoothGattService(MSG_SERVICE_UUID,
-                BluetoothGattService.SERVICE_TYPE_PRIMARY);
-        mMSGChar = new BluetoothGattCharacteristic(MSG_CHAR_UUID,
-                BluetoothGattCharacteristic.PROPERTY_READ| BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
-                BluetoothGattCharacteristic.PERMISSION_WRITE|BluetoothGattCharacteristic.PERMISSION_READ);
-        BluetoothGattDescriptor mDescriptor = new BluetoothGattDescriptor(CLIENT_CHAR_CONFI_UUID,
-                (BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE));
-        mMSGChar.addDescriptor(mDescriptor);
-        String sample_msg = "This is a very very very long message for testing purpose! I guess it is surely longer than 20 bytes...";
-        mMSGChar.setValue(sample_msg);
-//        mMSGChar.setValue("Short");
-        mBluetoothGattService.addCharacteristic(mMSGChar);
-        mGattServer.addService(mBluetoothGattService);
 
+        mGattServer = mBluetoothManager.openGattServer(context,mGattServerCallback);
+
+        mGattServer.addService(createService());
+
+        mRunnable = new Runnable() {
+            @Override
+            public void run() {
+
+                //if devices are still trying to pull the message then don't try to
+                //change it
+                if (mLastRead != null
+                        && mReadTimeout > (mLastRead.getTime() - System.currentTimeMillis())) {
+                    AdvertisementPayload toSend = mOutQ.poll();
+
+                    if (null != toSend) {
+                        byte[] header = toSend.getHeader();
+                        mCurrentMsg = toSend.getMsg();
+                        int type = toSend.getMsgType();
+
+                        //Now write to my characteristic
+                        //iterate over list of devices and notify
+                        byte[] nextHopNeighbor = toSend.getOneHopNeighbor();
+                        if (null != nextHopNeighbor) {
+                            //only notify specified neighbor
+                        } else {
+                            notifyRegisteredDevices(type, header);
+                        }
+                    }
+                }
+                mHandler.postDelayed(mRunnable, 30);
+            }
+        };
     }
 
     /**** **** BLE ADVERTISE **** ****/
@@ -127,8 +223,8 @@ public class BleWriter extends LayerBase
         AdvertiseData data = new AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
                 .setIncludeTxPowerLevel(false)
-                .addServiceUuid(BASIC_AD)
-                .addServiceData(BASIC_AD,data_out)
+                .addServiceUuid(new ParcelUuid(BLUENET_SERVICE_UUID))
+                .addServiceData(new ParcelUuid(BLUENET_SERVICE_UUID),data_out)
                 .build();
 
         mBluetoothLeAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
@@ -150,7 +246,7 @@ public class BleWriter extends LayerBase
         AdvertiseData data = new AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
                 .setIncludeTxPowerLevel(false)
-                .addServiceUuid(BASIC_AD)
+                .addServiceUuid(new ParcelUuid(BLUENET_SERVICE_UUID))
 //                .addServiceData(BASIC_AD)
                 .build();
 
@@ -206,65 +302,110 @@ public class BleWriter extends LayerBase
         }
 
         @Override
-        public void onCharacteristicReadRequest (BluetoothDevice device,
-                                                 int requestId,
-                                                 int offset,
-                                                 BluetoothGattCharacteristic characteristic){
-            super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
+        public void onCharacteristicReadRequest(BluetoothDevice device,
+                                                int requestId, int offset, BluetoothGattCharacteristic characteristic) {
+            if (PULL_MESSAGE_CHAR_UUID.equals(characteristic.getUuid())) {
+                mLastRead = new Timestamp(System.currentTimeMillis());
 
+                //https://stackoverflow.com/questions/29512305/android-ble-peripheral-oncharacteristicread-return-wrong-value-or-part-of-it
+                if (offset > mCurrentMsg.length) {
+                    mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[]{0});
+                }
+                else {
+                    int size = mCurrentMsg.length - offset;
+                    byte[] response = new byte[size];
 
-            byte[] msg = characteristic.getValue();
-            int size = msg.length - offset;
-            byte[] response = new byte[size];
+                    for (int i = offset; i < mCurrentMsg.length; i++) {
+                        response[i - offset] = mCurrentMsg[i];
+                    }
 
-            for (int i = offset; i < msg.length; i++) {
-                response[i - offset] = characteristic.getValue()[i];
+                    mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, response);
+                }
             }
-            mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, response);
-
-
-
-
-//            mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS,
-//            /* No need to respond with an offset */ 0,
-//            /* No need to respond with a value */ characteristic.getValue());
         }
-
 
         @Override
-        public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId,
-                                                 BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded,
-                                                 int offset, byte[] value) {
-            super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite,
-                    responseNeeded, offset, value);
-//            rec_msg = new String(value, StandardCharsets.UTF_8);
-//            w_state.setBoo(!b_state);
-            Log.v("chatFrag", "Characteristic Write request: " + Arrays.toString(value));
+        public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
+            if (CLIENT_CHAR_CONFI_UUID.equals(descriptor.getUuid())) {
+                if (Arrays.equals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE, value)) {
+                    Log.d(INFO_TAG, "Subscribe device to notifications: " + device);
+                    mRegisteredDevices.add(device);
+                } else if (Arrays.equals(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE, value)) {
+                    Log.d(INFO_TAG, "Unsubscribe device from notifications: " + device);
+                    mRegisteredDevices.remove(device);
+                }
 
-
-            int status = 0;
-            if (responseNeeded) {
-                mGattServer.sendResponse(device, requestId, status,
-            /* No need to respond with an offset */ 0,
-            /* No need to respond with a value */ null);
+                if (responseNeeded) {
+                    mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null);
+                }
+            } else {
+                Log.w(INFO_TAG, "Unknown descriptor write request");
+                if (responseNeeded) {
+                    mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null);
+                }
             }
         }
-    };
-    /**** **** End of Gatt Server **** ****/
 
+    };
+
+
+    private UUID getUUID(int msgType) {
+        switch (msgType) {
+            case AdvertisementPayload.SMALL_MESSAGE:
+                return SMALL_MSG_CHAR_UUID;
+            case AdvertisementPayload.REGULAR_MESSAGE:
+                return REGULAR_MSG_CHAR_UUID;
+            case AdvertisementPayload.LOCATION_UPDATE:
+                return LOCATION_UPDATE_CHAR_UUID;
+            case AdvertisementPayload.GROUP_QUERY:
+                return GROUP_QUERY_CHAR_UUID;
+            case AdvertisementPayload.GROUP_UPDATE:
+                return GROUP_UPDATE_CHAR_UUID;
+            default:
+                return null;
+        }
+    }
+
+    //private void notifyRegisteredDevice()
+
+    private void notifyRegisteredDevices(int msgType, byte [] data) {
+        UUID charUUID = getUUID(msgType);
+        if (null != charUUID) {
+            BluetoothGattCharacteristic characteristic = mGattServer
+                    .getService(BLUENET_SERVICE_UUID)
+                    .getCharacteristic(charUUID);
+
+            for (BluetoothDevice device : mRegisteredDevices) {
+                characteristic.setValue(data);
+                mGattServer.notifyCharacteristicChanged(device, characteristic, false);
+            }
+        }
+    }
+
+    /**** **** End of Gatt Server **** ****/
 
     @Override
     public int write(AdvertisementPayload advPayload) {
+        mOutQ.add(advPayload);
+        if (!mStarted) {
+            mRunnable.run();
+            mStarted = true;
+        }
+
         return 0;
     }
 
     @Override
     public int write(String dest, byte[] message) {
-        return 0;
+        throw new java.lang.UnsupportedOperationException("Not supported.");
     }
+
 
     @Override
     public String ask(String question) {
-        return null;
+        String resultString = new String();
+
+
+        return resultString;
     }
 }
