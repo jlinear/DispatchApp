@@ -1,4 +1,5 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -22,7 +23,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:text="PEOPLE"
-                android:textStyle="bold"/>
+                android:textStyle="bold" />
 
             <ListView
                 android:id="@+id/list_people"
@@ -46,9 +47,66 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dip"
                 android:background="#F6E4CC" >
+
             </ListView>
+
         </LinearLayout>
 
     </ScrollView>
+
+    <include layout="@layout/fab_layout" />
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/add_contact"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        app:srcCompat="@drawable/ic_float_button"
+
+        app:fab_size="normal"/>
+
+    <LinearLayout
+        android:id="@+id/layout_add_people"
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="80dp">
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/add_contact_people"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="@dimen/fab_margin"
+            app:srcCompat="@drawable/ic_add_friend"
+            app:backgroundTint="@color/colorPrimary" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layout_add_group"
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginRight="80dp">
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/add_contact_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="@dimen/fab_margin"
+            app:srcCompat="@drawable/ic_add_group"
+            app:backgroundTint="@color/colorPrimary"
+             />
+    </LinearLayout>
+
+
+
 
 </FrameLayout>

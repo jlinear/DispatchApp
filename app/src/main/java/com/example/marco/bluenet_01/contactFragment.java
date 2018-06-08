@@ -3,14 +3,18 @@ package com.example.marco.bluenet_01;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+
+
 
 /**
  * Created by jerry on 6/6/18.
@@ -74,6 +78,7 @@ public class contactFragment extends Fragment {
             mParam2 = getArguments().getString(ARG_PARAM2);
 
         }
+
     }
 
     @Override
@@ -91,6 +96,43 @@ public class contactFragment extends Fragment {
 
         ListUtils.setDynamicHeight(mListPeople);
         ListUtils.setDynamicHeight(mListGroup);
+
+        FloatingActionButton mFab_add_contact = view.findViewById(R.id.add_contact);
+        FloatingActionButton mFab_add_people = view.findViewById(R.id.add_contact_people);
+        FloatingActionButton mFab_add_group = view.findViewById(R.id.add_contact_group);
+        final LinearLayout mPeopleLayout = view.findViewById(R.id.layout_add_people);
+        mPeopleLayout.setVisibility(View.GONE);
+        final LinearLayout mGroupLayout = view.findViewById(R.id.layout_add_group);
+        mGroupLayout.setVisibility(View.GONE);
+
+        mFab_add_contact.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view){
+                if(mPeopleLayout.getVisibility() == View.VISIBLE && mGroupLayout.getVisibility() == View.VISIBLE){
+                    mPeopleLayout.setVisibility(View.GONE);
+                    mGroupLayout.setVisibility(View.GONE);
+                }else{
+                    mPeopleLayout.setVisibility(View.VISIBLE);
+                    mGroupLayout.setVisibility(View.VISIBLE);
+
+                }
+            }
+        });
+
+        mFab_add_people.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //TODO: popping up a dialog box for searching user and add
+            }
+        });
+
+        mFab_add_group.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //TODO: dialog box for join group
+            }
+        });
+
 
         // NOTE : We are calling the onFragmentInteraction() declared in the MainActivity
         // ie we are sending "Fragment 1" as title parameter when fragment1 is activated
