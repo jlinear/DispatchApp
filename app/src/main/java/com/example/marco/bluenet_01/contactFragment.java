@@ -1,14 +1,19 @@
 package com.example.marco.bluenet_01;
 
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -94,6 +99,37 @@ public class contactFragment extends Fragment {
         mListPeople.setAdapter(new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, data1));
         mListGroup.setAdapter(new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, data2));
 
+        mListPeople.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                //TODO: get the Bluenet ID and pass to chat fragment
+                String id = data1[i];
+                Fragment fg= new chatFragment();
+                Bundle bundle = new Bundle();
+                bundle.putString("chattingName", id);
+                fg.setArguments(bundle);
+
+                FragmentTransaction ft = getActivity().getSupportFragmentManager().beginTransaction();
+                ft.replace(R.id.mainFrame, fg);
+                ft.commit();
+            }
+        });
+        mListGroup.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                //TODO: get group ID and pass to chat fragment
+                String id = data2[i];
+                Fragment fg= new chatFragment();
+                Bundle bundle = new Bundle();
+                bundle.putString("chattingName", id);
+                fg.setArguments(bundle);
+
+                FragmentTransaction ft = getActivity().getSupportFragmentManager().beginTransaction();
+                ft.replace(R.id.mainFrame, fg);
+                ft.commit();
+            }
+        });
+
         ListUtils.setDynamicHeight(mListPeople);
         ListUtils.setDynamicHeight(mListGroup);
 
@@ -122,14 +158,38 @@ public class contactFragment extends Fragment {
         mFab_add_people.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //TODO: popping up a dialog box for searching user and add
+                final EditText editText = new EditText(getContext());
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Add new contact")
+                        .setMessage("Search by user ID:")
+                        .setView(editText)
+                        .setPositiveButton("Search", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                //TODO: pass the userID to bluenet for ID search
+                            }
+                        })
+                        .setNegativeButton("Cancel",null)
+                        .show();
             }
         });
 
         mFab_add_group.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //TODO: dialog box for join group
+                final EditText editText = new EditText(getContext());
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Join new group by name")
+                        .setMessage("Search by group name")
+                        .setView(editText)
+                        .setPositiveButton("Search", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                //TODO: pass the group name to bluenet for group search
+                            }
+                        })
+                        .setNegativeButton("Cancel",null)
+                        .show();
             }
         });
 
@@ -170,6 +230,11 @@ public class contactFragment extends Fragment {
         super.onDetach();
         mListener = null;
     }
+
+
+//    public ListPeopleClickListener = new AdapterView.OnItemClickListener(){
+//
+//    }
 
     public static class ListUtils {
         public static void setDynamicHeight(ListView mListView) {

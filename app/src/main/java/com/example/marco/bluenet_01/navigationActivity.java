@@ -21,6 +21,7 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SwitchCompat;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -161,7 +162,7 @@ public class navigationActivity extends AppCompatActivity
         } else if (id == R.id.nav_about) {
             //fragment = new aboutFragment();
             //TODO: change the url here to the project website
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.google.com"));
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://jlinear.github.io/BlueNet_Project/"));
             startActivity(browserIntent);
         }
 
