@@ -2,6 +2,8 @@ package com.example.marco.bluenet_01.BLE_Comm;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -180,6 +182,10 @@ public class BlueNet implements BlueNetIFace {
 
     }
 
+    public void setMyID(String myID){
+        this.mID = myID;
+    }
+
     //***********************************
     //Interface things to implement
     //***********************************
@@ -242,5 +248,64 @@ public class BlueNet implements BlueNetIFace {
         String res = mQuery.ask("GrpMgr.leaveGroup " + id);
         return Objects.equals("ok", res);
     }
+
+
+//
+//    protected BlueNet(Parcel in) {
+//        mResultHandler = (Result) in.readValue(Result.class.getClassLoader());
+//        if (in.readByte() == 0x01) {
+//            mLayers = new ArrayList<LayerBase>();
+//            in.readList(mLayers, LayerBase.class.getClassLoader());
+//        } else {
+//            mLayers = null;
+//        }
+//        mRoute = (RoutingManager) in.readValue(RoutingManager.class.getClassLoader());
+//        mGrp = (GroupManager) in.readValue(GroupManager.class.getClassLoader());
+//        mLoc = (LocationManager) in.readValue(LocationManager.class.getClassLoader());
+//        mMsg = (MessageLayer) in.readValue(MessageLayer.class.getClassLoader());
+//        mBLEW = (BleWriter) in.readValue(BleWriter.class.getClassLoader());
+//        mBLER = (BleReader) in.readValue(BleReader.class.getClassLoader());
+//        mQuery = (Query) in.readValue(Query.class.getClassLoader());
+//        mRandString = (RandomString) in.readValue(RandomString.class.getClassLoader());
+//        mID = in.readString();
+//    }
+//
+//    @Override
+//    public int describeContents() {
+//        return 0;
+//    }
+//
+//    @Override
+//    public void writeToParcel(Parcel dest, int flags) {
+//        dest.writeValue(mResultHandler);
+//        if (mLayers == null) {
+//            dest.writeByte((byte) (0x00));
+//        } else {
+//            dest.writeByte((byte) (0x01));
+//            dest.writeList(mLayers);
+//        }
+//        dest.writeValue(mRoute);
+//        dest.writeValue(mGrp);
+//        dest.writeValue(mLoc);
+//        dest.writeValue(mMsg);
+//        dest.writeValue(mBLEW);
+//        dest.writeValue(mBLER);
+//        dest.writeValue(mQuery);
+//        dest.writeValue(mRandString);
+//        dest.writeString(mID);
+//    }
+//
+//    @SuppressWarnings("unused")
+//    public static final Parcelable.Creator<BlueNet> CREATOR = new Parcelable.Creator<BlueNet>() {
+//        @Override
+//        public BlueNet createFromParcel(Parcel in) {
+//            return new BlueNet(in);
+//        }
+//
+//        @Override
+//        public BlueNet[] newArray(int size) {
+//            return new BlueNet[size];
+//        }
+//    };
 
 }

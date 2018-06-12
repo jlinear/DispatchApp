@@ -26,6 +26,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.example.marco.bluenet_01.BLE_Comm.BlueNet;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -69,6 +70,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
     SupportMapFragment mapFragment;
 
     Button SendButton;
+    BlueNet mBluenet;
+
 
 
     public mapsFragment() {
@@ -96,9 +99,12 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mBluenet = new BlueNet(getContext(), getActivity());
         if (getArguments() != null) {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
+//            BlueNet mBluenet = getArguments().getParcelable("bluenet");
+
         }
 
     }
@@ -136,6 +142,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         mapFragment.getMapAsync(this);
 
         getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+
+
 
         // Here we will can create click listners etc for all the gui elements on the fragment.
         // For eg: Button btn1= (Button) view.findViewById(R.id.frag1_btn1);
@@ -184,6 +192,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
             for (Location location : locationResult.getLocations()) {
                 Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
                 lastLocation = location;
+                String[] nids = mBluenet.getNeighbors();
+                Log.d("MapsLog", nids[0]);
 
                 // makes sure location is updated in the beginning
                 if(!locationFound){

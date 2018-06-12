@@ -41,6 +41,8 @@ import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.util.UUID;
 
+import nd.edu.bluenet_stack.Coordinate;
+
 
 public class navigationActivity extends AppCompatActivity
         implements
@@ -56,11 +58,14 @@ public class navigationActivity extends AppCompatActivity
     private FusedLocationProviderClient mFusedLocationClient;
     public BlueNet mBluenet;
     public String myID;
+    public String[] myNeighbors;
+    public Coordinate[] myNeighborsLoc;
 
     Fragment fragment = null;
 
 
     Fragment mapsFragment = new mapsFragment();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,17 +96,28 @@ public class navigationActivity extends AppCompatActivity
         //NOTE:  Checks first item in the navigation drawer initially
         navigationView.setCheckedItem(R.id.nav_maps);
 
-        //NOTE:  Open fragment1 initially.
-        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        ft.replace(R.id.mainFrame, new mapsFragment());
-        ft.commit();
-
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         myID = PreferenceManager.getDefaultSharedPreferences(this).getString("userName", "");
 
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
         mBluenet = new BlueNet(this, this);
+        mBluenet.setMyID(myID);
+//        myNeighbors = mBluenet.getNeighbors();
+//        for(int i = 0; i < myNeighbors.length; i ++){
+//            myNeighborsLoc[i] = mBluenet.getLocation(myNeighbors[i]);
+//        }
+
+        //NOTE:  Open fragment1 initially.
+//        Bundle bundle = new Bundle();
+//        bundle.putParcelable("bluenet", mBluenet);
+//        mapsFragment.setArguments(bundle);
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.mainFrame, mapsFragment);
+        ft.commit();
 
     }
+
+
 
     @Override
     public void onBackPressed() {
@@ -232,6 +248,7 @@ public class navigationActivity extends AppCompatActivity
 //            mBleBasic.stopAdvertising();
         }
     }
+
 
     public void distressClick(View view) {
         final EditText editText = new EditText(this);
