@@ -245,7 +245,7 @@ public class BleReader extends LayerBase
 
         if(connectionState == BluetoothProfile.STATE_DISCONNECTED ){
             // connect your device
-            device.connectGatt(this.context, false, mGattCallback);
+            device.connectGatt(this.context, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
         }else if( connectionState == BluetoothProfile.STATE_CONNECTED ){
             // already connected . send Broadcast if needed
         }
