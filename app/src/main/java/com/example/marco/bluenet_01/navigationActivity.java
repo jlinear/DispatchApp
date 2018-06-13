@@ -100,8 +100,7 @@ public class navigationActivity extends AppCompatActivity
         myID = PreferenceManager.getDefaultSharedPreferences(this).getString("userName", "");
 
 
-        mBluenet = new BlueNet(this, this);
-        mBluenet.setMyID(myID);
+//        mBluenet = new BlueNet(this, this);
 //        myNeighbors = mBluenet.getNeighbors();
 //        for(int i = 0; i < myNeighbors.length; i ++){
 //            myNeighborsLoc[i] = mBluenet.getLocation(myNeighbors[i]);

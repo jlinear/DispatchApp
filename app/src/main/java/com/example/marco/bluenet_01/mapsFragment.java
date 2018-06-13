@@ -193,7 +193,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                 Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
                 lastLocation = location;
                 String[] nids = mBluenet.getNeighbors();
-                Log.d("MapsLog", nids[0]);
+                Log.d("MapsLog", "length of nids " + nids.length +
+                        " 1st neighbor id: "+nids[0] + " myID: " +mBluenet.getMyID());
 
                 // makes sure location is updated in the beginning
                 if(!locationFound){

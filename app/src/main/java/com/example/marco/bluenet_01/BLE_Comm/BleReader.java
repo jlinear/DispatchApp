@@ -19,6 +19,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.ParcelUuid;
+import android.os.SystemClock;
 import android.util.Log;
 
 import com.example.marco.bluenet_01.BuildConfig;
@@ -245,7 +246,7 @@ public class BleReader extends LayerBase
 
         if(connectionState == BluetoothProfile.STATE_DISCONNECTED ){
             // connect your device
-            device.connectGatt(this.context, false, mGattCallback);
+            device.connectGatt(this.context, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
         }else if( connectionState == BluetoothProfile.STATE_CONNECTED ){
             // already connected . send Broadcast if needed
         }

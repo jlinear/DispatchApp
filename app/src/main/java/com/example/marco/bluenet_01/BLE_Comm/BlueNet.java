@@ -182,9 +182,6 @@ public class BlueNet implements BlueNetIFace {
 
     }
 
-    public void setMyID(String myID){
-        this.mID = myID;
-    }
 
     //***********************************
     //Interface things to implement
