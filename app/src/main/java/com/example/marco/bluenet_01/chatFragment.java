@@ -82,11 +82,6 @@ public class chatFragment extends Fragment {
         //return inflater.inflate(R.layout.fragment_chat, container, false);
         View view = inflater.inflate(R.layout.fragment_chat, container, false);
 
-        // NOTE : We are calling the onFragmentInteraction() declared in the MainActivity
-        // ie we are sending "Fragment 1" as title parameter when fragment1 is activated
-        if (mListener != null) {
-            mListener.onFragmentInteraction("Dispatch Chat");
-        }
 
         // Here we will can create click listners etc for all the gui elements on the fragment.
         // For eg: Button btn1= (Button) view.findViewById(R.id.frag1_btn1);
@@ -94,6 +89,9 @@ public class chatFragment extends Fragment {
 
         headerText = view.findViewById(R.id.chat_header);
         checkBundle();
+
+        // NOTE : We are calling the onFragmentInteraction() declared in the MainActivity
+        // ie we are sending "Fragment 1" as title parameter when fragment1 is activated
 
         // Send message through bluenet and receive on device
         chatView = view.findViewById(R.id.chat_view);
@@ -133,9 +131,16 @@ public class chatFragment extends Fragment {
         Bundle bundle = this.getArguments();
         if (bundle != null) {
             chattingWith = bundle.getString("chattingName", null);
-            headerTextString = "Chatting With: " + chattingWith;
-            headerText.setTextColor(getResources().getColor(R.color.black));
-            headerText.setText(headerTextString);
+            if(chattingWith != null){
+                headerText.setText(null);
+                mListener.onFragmentInteraction("Chat with: " + chattingWith);
+            }else{
+                mListener.onFragmentInteraction("Dispatch Chat");
+            }
+
+//            headerTextString = "Chatting With: " + chattingWith;
+//            headerText.setTextColor(getResources().getColor(R.color.black));
+//            headerText.setText(headerTextString);
         }
     }
 

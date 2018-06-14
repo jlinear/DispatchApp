@@ -10,6 +10,7 @@
 
 
     <string name="set_message_type">Set Message Type:</string>
+    <string name="default_header">Please choose a user/group on map or from contacts</string>
 
 
     <!-- TODO: Remove or change this placeholder text -->

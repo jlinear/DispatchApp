@@ -2,6 +2,8 @@ package com.example.marco.bluenet_01.BLE_Comm;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -206,7 +208,11 @@ public class BlueNet implements BlueNetIFace {
 
     public String[] getNeighbors() {
         String res = mQuery.ask("LocMgr.getNeighbors");
-        String[] ids = res.split("\\s+");
+
+        String[] ids = new String[0];
+        if (null != res) {
+            ids = res.split("\\s+");
+        }
 
         return ids;
     }
@@ -242,5 +248,4 @@ public class BlueNet implements BlueNetIFace {
         String res = mQuery.ask("GrpMgr.leaveGroup " + id);
         return Objects.equals("ok", res);
     }
-
 }

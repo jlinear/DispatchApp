@@ -19,7 +19,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.ParcelUuid;
+import android.os.SystemClock;
 import android.util.Log;
+import android.os.Handler;
 
 import com.example.marco.bluenet_01.BuildConfig;
 
@@ -245,6 +247,7 @@ public class BleReader extends LayerBase
 
         if(connectionState == BluetoothProfile.STATE_DISCONNECTED ){
             // connect your device
+
             device.connectGatt(this.context, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
         }else if( connectionState == BluetoothProfile.STATE_CONNECTED ){
             // already connected . send Broadcast if needed
@@ -258,10 +261,10 @@ public class BleReader extends LayerBase
 
     /**** **** GATT Client **** ****/
     private void setupCharacteristic(BluetoothGatt gatt) {
-        UUID currentUUID = mCharactericUUIDList.get(mServiceSetupTables.get(gatt.getDevice().getAddress()));
         Integer index = mServiceSetupTables.get(gatt.getDevice().getAddress());
 
         if (index < mCharactericUUIDList.size()) {
+             UUID currentUUID = mCharactericUUIDList.get(mServiceSetupTables.get(gatt.getDevice().getAddress()));
             //Enable notifications locally for all msg type characteristics
             BluetoothGattCharacteristic characteristic = gatt
                     .getService(BLUENET_SERVICE_UUID)
@@ -286,7 +289,9 @@ public class BleReader extends LayerBase
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            BluetoothDevice device = gatt.getDevice();
+
+            final BluetoothDevice device = gatt.getDevice();
+
             String address = device.getAddress();
 
             if (newState == BluetoothProfile.STATE_CONNECTED) {
@@ -308,6 +313,17 @@ public class BleReader extends LayerBase
                         bluetoothGatt = null;
                     }
                     mConnectedDeviceMap.remove(address);
+                }
+
+                if (133 == status) { //bad things! try again!
+                    Handler delayHandler = new Handler();
+                    delayHandler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            device.connectGatt(context, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
+                        }
+                    }, 100);
+
                 }
                 // Broadcast if needed
             }

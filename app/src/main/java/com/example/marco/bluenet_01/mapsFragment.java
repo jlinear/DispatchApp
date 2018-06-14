@@ -1,6 +1,8 @@
 package com.example.marco.bluenet_01;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.location.Location;
@@ -11,14 +13,20 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.preference.PreferenceManager;
+import android.text.InputType;
+import android.text.method.DigitsKeyListener;
+import android.text.method.KeyListener;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
+import com.example.marco.bluenet_01.BLE_Comm.BlueNet;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -29,6 +37,8 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -60,6 +70,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
     SupportMapFragment mapFragment;
 
     Button SendButton;
+    BlueNet mBluenet;
+
 
 
     public mapsFragment() {
@@ -87,9 +99,12 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mBluenet = new BlueNet(getContext(), getActivity());
         if (getArguments() != null) {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
+//            BlueNet mBluenet = getArguments().getParcelable("bluenet");
+
         }
 
     }
@@ -127,6 +142,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         mapFragment.getMapAsync(this);
 
         getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+
+
 
         // Here we will can create click listners etc for all the gui elements on the fragment.
         // For eg: Button btn1= (Button) view.findViewById(R.id.frag1_btn1);
@@ -168,12 +185,19 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         }
     }
 
+
     LocationCallback mLocationCallback = new LocationCallback(){
         @Override
         public void onLocationResult(LocationResult locationResult) {
             for (Location location : locationResult.getLocations()) {
                 Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
                 lastLocation = location;
+                String[] nids = mBluenet.getNeighbors();
+
+                if (0 < nids.length) {
+                    Log.d("MapsLog", "length of nids " + nids.length +
+                            " 1st neighbor id: "+nids[0] + " myID: " +mBluenet.getMyID());
+                }
 
                 // makes sure location is updated in the beginning
                 if(!locationFound){
@@ -210,6 +234,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
             showToast("mFusedLocationProviderClient failed");
         }
         markerTitleClick();
+        SetUpLongClick();
     }
 
     private void showToast(String s){
@@ -219,6 +244,9 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
     void updateLocation(Location location){
         double latitude = location.getLatitude();
         double longitude = location.getLongitude();
+
+        mBluenet.setLocation((float)latitude, (float)longitude);
+
 
         LatLng currentLatLng = new LatLng(latitude, longitude);
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 17));
@@ -241,6 +269,46 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                 NavigationView navigationView = (NavigationView) getActivity().findViewById(R.id.nav_view);
                 navigationView.setCheckedItem(R.id.nav_chat);
                 ft.commit();
+            }
+        });
+    }
+
+    public void SetUpLongClick(){
+        mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(final LatLng latLng) {
+                double lat = latLng.latitude;
+                double lng = latLng.longitude;
+                Log.d(this.getClass().getSimpleName(), "Long click on "+ latLng);
+                final EditText editText = new EditText(getContext());
+                editText.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Set up your range of interests")
+                        .setMessage("Enter the radius (miles): ")
+                        .setView(editText)
+                        .setPositiveButton("Set", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                //TODO: pass the location and radius for group creation
+                                //TODO: add the group center/radius to the contact
+
+                                try{
+                                    double radius = Double.parseDouble(editText.getText().toString());
+                                    CircleOptions circleOptions = new CircleOptions()
+                                            .center(latLng)
+                                            .radius(radius * 1609.344) //the accepted unit is meters
+                                            .strokeColor(0xffff0000)
+                                            .strokeWidth(2);
+                                    Circle mCircle = mMap.addCircle(circleOptions);
+                                } catch (Exception e){
+                                    e.printStackTrace();
+                                }
+                            }
+                        })
+                        .setNegativeButton("Cancel",null)
+                        .show();
+
+
             }
         });
     }

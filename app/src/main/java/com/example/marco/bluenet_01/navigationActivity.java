@@ -3,9 +3,11 @@ package com.example.marco.bluenet_01;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.NavigationView;
@@ -19,6 +21,7 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SwitchCompat;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -29,26 +32,23 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.marco.bluenet_01.BLE_Comm.BleBasic;
-
 import com.example.marco.bluenet_01.BLE_Comm.BleReader;
 import com.example.marco.bluenet_01.BLE_Comm.BleWriter;
+import com.example.marco.bluenet_01.BLE_Comm.BlueNet;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-import nd.edu.bluenet_stack.BlueNetIFace;
-import nd.edu.bluenet_stack.Group;
-import nd.edu.bluenet_stack.Result;
+import nd.edu.bluenet_stack.Coordinate;
 
 
 public class navigationActivity extends AppCompatActivity
         implements
         mapsFragment.OnFragmentInteractionListener,
         chatFragment.OnFragmentInteractionListener,
+        contactFragment.OnFragmentInteractionListener,
         profileFragment.OnFragmentInteractionListener,
         protocolFragment.OnFragmentInteractionListener,
         aboutFragment.OnFragmentInteractionListener,
@@ -56,32 +56,15 @@ public class navigationActivity extends AppCompatActivity
         CompoundButton.OnCheckedChangeListener{
 
     private FusedLocationProviderClient mFusedLocationClient;
-//    public BleBasic mBleBasic;
-    private String myID;
+    public BlueNet mBluenet;
+    public String myID;
+    public String[] myNeighbors;
+    public Coordinate[] myNeighborsLoc;
 
+    Fragment fragment = null;
 
-    private CentralService mCentral;
-    private PeripheralService mPeripheral;
-
-    private BleWriter mWriter;
-    private BleReader mReader;
 
     Fragment mapsFragment = new mapsFragment();
-
-    /**** GATT declarations ****/
-    private static final UUID MSG_SERVICE_UUID = UUID
-            .fromString("00001869-0000-1000-8000-00805f9b34fb");
-    private static final UUID MSG_CHAR_UUID = UUID.
-            fromString("00002a09-0000-1000-8000-00805f9b34fb");
-    private static final UUID SMSG_CHAR_UUID = UUID.
-            fromString("00002a10-0000-1000-8000-00805f9b34fb");
-    private static final UUID CLIENT_CHAR_CONFI_UUID = UUID.
-            fromString("00002a08-0000-1000-8000-00805f9b34fb");
-    private static final UUID SCLIENT_CHAR_CONFI_UUID = UUID.
-            fromString("00002a07-0000-1000-8000-00805f9b34fb");
-
-
-
 
 
     @Override
@@ -113,22 +96,27 @@ public class navigationActivity extends AppCompatActivity
         //NOTE:  Checks first item in the navigation drawer initially
         navigationView.setCheckedItem(R.id.nav_maps);
 
-        //NOTE:  Open fragment1 initially.
-        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        ft.replace(R.id.mainFrame, new mapsFragment());
-        ft.commit();
-
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         myID = PreferenceManager.getDefaultSharedPreferences(this).getString("userName", "");
 
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        mWriter = new BleWriter(this,this);
-        mReader = new BleReader(this, this);
 
+//        mBluenet = new BlueNet(this, this);
+//        myNeighbors = mBluenet.getNeighbors();
+//        for(int i = 0; i < myNeighbors.length; i ++){
+//            myNeighborsLoc[i] = mBluenet.getLocation(myNeighbors[i]);
+//        }
 
+        //NOTE:  Open fragment1 initially.
+//        Bundle bundle = new Bundle();
+//        bundle.putParcelable("bluenet", mBluenet);
+//        mapsFragment.setArguments(bundle);
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.mainFrame, mapsFragment);
+        ft.commit();
 
-//        mBleBasic = new BleBasic(this.getApplicationContext(),this);
-//        mBleBasic.startLeScanning();
     }
+
+
 
     @Override
     public void onBackPressed() {
@@ -151,6 +139,14 @@ public class navigationActivity extends AppCompatActivity
     }
 
     @Override
+    public void onDestroy(){
+        super.onDestroy();
+//        mReader.mBluetoothGatt.disconnect();
+//        mWriter.mGattServer.close();
+
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.navigation, menu);
@@ -165,18 +161,24 @@ public class navigationActivity extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-        Fragment fragment = null;
+//        Fragment fragment = null;
 
         if (id == R.id.nav_maps) {
             fragment = new mapsFragment();
         } else if (id == R.id.nav_chat) {
-            fragment = new chatFragment();
+//            fragment = new chatFragment();
+            ChatFragClick();
+        } else if (id == R.id.nav_contact){
+            fragment = new contactFragment();
         } else if (id == R.id.nav_profile) {
             fragment = new profileFragment();
         } else if (id == R.id.nav_protocol) {
             fragment = new protocolFragment();
         } else if (id == R.id.nav_about) {
-            fragment = new aboutFragment();
+            //fragment = new aboutFragment();
+            //TODO: change the url here to the project website
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://jlinear.github.io/BlueNet_Project/"));
+            startActivity(browserIntent);
         }
 
         //NOTE: Fragment changing code
@@ -246,6 +248,7 @@ public class navigationActivity extends AppCompatActivity
         }
     }
 
+
     public void distressClick(View view) {
         final EditText editText = new EditText(this);
         new AlertDialog.Builder(this)
@@ -258,6 +261,10 @@ public class navigationActivity extends AppCompatActivity
                         // TODO: send the distress signal with BlueNet
                         // use this to get text from prompt: editText.getText();
 //                        mBleBasic.startLeAdvertising(editText.getText().toString().getBytes(StandardCharsets.UTF_8));
+                        /**** Test large char read  ****/
+//                        mReader.readLargeChar();
+
+
                         showToast("Distress signal sent!");
                         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
                         drawer.closeDrawer(GravityCompat.START);
@@ -267,6 +274,37 @@ public class navigationActivity extends AppCompatActivity
                     }
                 })
                 .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    public void ChatFragClick(){
+//        Fragment fragment = null;
+        new AlertDialog.Builder(this)
+                .setTitle("No Chatting Object Selected!")
+                .setMessage("Please choose a user/group on map or from contacts.")
+                .setPositiveButton("On Map", new DialogInterface.OnClickListener(){
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i){
+                        fragment = new mapsFragment();
+                        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+                        ft.replace(R.id.mainFrame, fragment);
+                        ft.commit();
+                        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+                        drawer.closeDrawer(GravityCompat.START);
+                    }
+                })
+                .setNegativeButton("From Contacts", new DialogInterface.OnClickListener(){
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i){
+                        fragment = new contactFragment();
+                        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+                        ft.replace(R.id.mainFrame, fragment);
+                        ft.commit();
+                        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+                        drawer.closeDrawer(GravityCompat.START);
+                    }
+                })
+                .setNeutralButton("Cancel", null)
                 .show();
     }
 
