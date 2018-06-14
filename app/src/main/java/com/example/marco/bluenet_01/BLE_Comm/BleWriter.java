@@ -370,6 +370,7 @@ public class BleWriter extends LayerBase
 
     private void notifyRegisteredDevices(int msgType, byte [] data) {
         UUID charUUID = getUUID(msgType);
+        Log.i(INFO_TAG, "Sending: " + new String(data));
         if (null != charUUID) {
             BluetoothGattCharacteristic characteristic = mGattServer
                     .getService(BLUENET_SERVICE_UUID)

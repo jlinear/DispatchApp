@@ -209,7 +209,10 @@ public class BlueNet implements BlueNetIFace {
 
     public String[] getNeighbors() {
         String res = mQuery.ask("LocMgr.getNeighbors");
-        String[] ids = res.split("\\s+");
+        String[] ids = new String[0];
+        if (null != res) {
+            ids = res.split("\\s+");
+        }
 
         return ids;
     }
