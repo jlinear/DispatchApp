@@ -191,6 +191,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         public void onLocationResult(LocationResult locationResult) {
             for (Location location : locationResult.getLocations()) {
                 Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
+                mBluenet.setLocation((float)location.getLatitude(), (float)location.getLongitude());
                 lastLocation = location;
                 String[] nids = mBluenet.getNeighbors();
 
@@ -244,9 +245,6 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
     void updateLocation(Location location){
         double latitude = location.getLatitude();
         double longitude = location.getLongitude();
-
-        mBluenet.setLocation((float)latitude, (float)longitude);
-
 
         LatLng currentLatLng = new LatLng(latitude, longitude);
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 17));

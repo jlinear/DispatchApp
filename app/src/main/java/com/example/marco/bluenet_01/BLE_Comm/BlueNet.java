@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -136,11 +137,28 @@ public class BlueNet implements BlueNetIFace {
 
         //the dummy ble layer get AdvertisementPayloads and passes them to
         //the message layer
-        mBLER.setReadCB(mMsg);
+        mBLER.setReadCB( new Reader () {
+            public int read(AdvertisementPayload advPayload) {
+                Log.i("BlueNet", "Received a packet!");
+                return mMsg.read(advPayload);
+            }
+            public int read(String src, byte[] message) {
+                return -1;
+            }
+
+        });
 
         //The message layer writes AdvertisementPayloads to the
         //dummy ble layer
-        mMsg.setWriteCB(mBLEW);
+        mMsg.setWriteCB(new Writer () {
+            public int write(AdvertisementPayload advPayload) {
+                Log.i("BlueNet", "Sending a packet!");
+                return mBLEW.write(advPayload);
+            }
+            public int write(String src, byte[] message) {
+                return -1;
+            }
+        });
 
         //The message layer will hand off messages to this (the top layer) to be printed
         //However, an AdvertisementPayload is passed up then it is sent to LocationManager
@@ -153,6 +171,7 @@ public class BlueNet implements BlueNetIFace {
         //group manager hands to routing manager or all the way to result handler
         mGrp.setReadCB(new Reader() {
             public int read(AdvertisementPayload advPayload) {
+                Log.i("BlueNet", "Hit RoutingManager");
                 return mRoute.read(advPayload);
             }
             public int read(String src, byte[] message) {
