@@ -185,10 +185,11 @@ public class BleWriter extends LayerBase
             @Override
             public void run() {
 
-                //if devices are still trying to pull the message then don't try to
-                //change it
-                if (mLastRead != null
-                        && mReadTimeout > (mLastRead.getTime() - System.currentTimeMillis())) {
+                //if we haven't ever set lastRead or if our elapsed time since the last
+                //time we read is greater than the timeout threshold, go ahead a grab
+                //a new message to send
+                if (mLastRead == null
+                        || mReadTimeout < (mLastRead.getTime() - System.currentTimeMillis())) {
                     AdvertisementPayload toSend = mOutQ.poll();
 
                     if (null != toSend) {
@@ -371,14 +372,15 @@ public class BleWriter extends LayerBase
     private void notifyRegisteredDevices(int msgType, byte [] data) {
         UUID charUUID = getUUID(msgType);
 
-        Log.i(INFO_TAG, "Sending: " + new String(data));
+        Log.d("BlueNet", "notifying!");
         if (null != charUUID) {
             BluetoothGattCharacteristic characteristic = mGattServer
                     .getService(BLUENET_SERVICE_UUID)
                     .getCharacteristic(charUUID);
 
+            characteristic.setValue(data);
+
             for (BluetoothDevice device : mRegisteredDevices) {
-                characteristic.setValue(data);
                 mGattServer.notifyCharacteristicChanged(device, characteristic, false);
             }
         }
@@ -388,6 +390,7 @@ public class BleWriter extends LayerBase
 
     @Override
     public int write(AdvertisementPayload advPayload) {
+        Log.d("BlueNet", "Hit BLEWriter");
         mOutQ.add(advPayload);
         if (!mStarted) {
             mRunnable.run();
