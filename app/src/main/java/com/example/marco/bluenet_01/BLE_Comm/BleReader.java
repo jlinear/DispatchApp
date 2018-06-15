@@ -251,8 +251,6 @@ public class BleReader extends LayerBase
             BluetoothDevice remoteDevice = mBluetoothAdapter.getRemoteDevice(deviceAddr);
             int connectionState = mBluetoothManager.getConnectionState(remoteDevice, BluetoothProfile.GATT);
 
-            Log.d("BlueNet", "RESULT!?!?!");
-
             if(connectionState == BluetoothProfile.STATE_DISCONNECTED) {
                 if (null == mPendingConnect.get(deviceAddr)) {
                     mPendingConnect.put(deviceAddr, false);
@@ -262,7 +260,7 @@ public class BleReader extends LayerBase
                     // connect your device
                      Log.d("BlueNet", "trying to connect!");
                     mPendingConnect.put(deviceAddr, true);
-                    device.connectGatt(this.context, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
+                    /*BluetoothGatt gatt = */device.connectGatt(this.context, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
                 }
             }else if( connectionState == BluetoothProfile.STATE_CONNECTED ){
                 // already connected . send Broadcast if needed
@@ -320,7 +318,9 @@ public class BleReader extends LayerBase
             String address = device.getAddress();
             mPendingConnect.put(address, false);
 
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
+            Log.i(INFO_TAG, String.format("onConnectionStatechange-- status: %d, state: %d", status, newState));
+
+            if (newState == BluetoothGatt.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
 
                 Log.i(INFO_TAG, "Connected to GATT server.");
 
@@ -329,9 +329,9 @@ public class BleReader extends LayerBase
                 }
                 // Broadcast if needed
                 Log.i(INFO_TAG, "Attempting to start service discovery:" +
-                        gatt.discoverServices());
+                gatt.discoverServices());
 
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+            } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
                 Log.i(INFO_TAG, "Disconnected from GATT server.");
                 if (mConnectedDeviceMap.containsKey(address)){
                     BluetoothGatt bluetoothGatt = mConnectedDeviceMap.get(address);
@@ -364,13 +364,18 @@ public class BleReader extends LayerBase
                 BluetoothDevice device = gatt.getDevice();
                 String address = device.getAddress();
                 final BluetoothGatt bluetoothGatt = mConnectedDeviceMap.get(address);
-                mServiceSetupTables.put(address, new Integer(0));
-                mBGHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        setupCharacteristic(bluetoothGatt);
-                    }
-                });
+
+                if (!mServiceSetupTables.containsKey(address)) {
+                    //only go through this with NEWLY discovered services
+                    mServiceSetupTables.put(address, new Integer(0));
+                    mBGHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            setupCharacteristic(bluetoothGatt);
+                        }
+                    });
+                }
+               
                
             } else {
                 Log.e(ERR_TAG, "onServicesDiscovered received: " + status);

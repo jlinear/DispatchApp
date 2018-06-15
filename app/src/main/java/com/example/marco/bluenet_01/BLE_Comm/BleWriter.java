@@ -26,6 +26,8 @@ import java.net.ContentHandler;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -189,7 +191,7 @@ public class BleWriter extends LayerBase
                 //time we read is greater than the timeout threshold, go ahead a grab
                 //a new message to send
                 if (mLastRead == null
-                        || mReadTimeout < (mLastRead.getTime() - System.currentTimeMillis())) {
+                        || mReadTimeout < (System.currentTimeMillis() - mLastRead.getTime())) {
                     AdvertisementPayload toSend = mOutQ.poll();
 
                     if (null != toSend) {
@@ -299,6 +301,10 @@ public class BleWriter extends LayerBase
                     //mDevice = device;
                     Log.d(INFO_TAG,"Gatt Server connected.");
                 }
+                else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
+                    Log.d(INFO_TAG, "Gatt Server disconnected.");
+                    mRegisteredDevices.remove(device);
+                }
             }
         }
 
@@ -381,7 +387,11 @@ public class BleWriter extends LayerBase
             characteristic.setValue(data);
 
             for (BluetoothDevice device : mRegisteredDevices) {
-                mGattServer.notifyCharacteristicChanged(device, characteristic, false);
+                try {
+                    mGattServer.notifyCharacteristicChanged(device, characteristic, false);
+                } catch (NullPointerException x) {
+                    Log.e("BlueNet", "A device disconnected unexpectedly");
+                }
             }
         }
     }
