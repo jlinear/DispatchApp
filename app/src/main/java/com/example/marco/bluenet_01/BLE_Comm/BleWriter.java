@@ -115,10 +115,12 @@ public class BleWriter extends LayerBase
     private final long mReadTimeout = 60L;
 
     private BluetoothGattService createService() {
+        //give our service it's UUID and set it to be primary
         BluetoothGattService service = new BluetoothGattService(BLUENET_SERVICE_UUID, SERVICE_TYPE_PRIMARY);
 
         // Message type characteristics (read-only, supports subscriptions)
         BluetoothGattCharacteristic smallMsg = new BluetoothGattCharacteristic(SMALL_MSG_CHAR_UUID, PROPERTY_READ | PROPERTY_NOTIFY, PERMISSION_READ);
+        //setting up this descriptor allows us to enable notifications
         BluetoothGattDescriptor headerConfig = new BluetoothGattDescriptor(CLIENT_CHAR_CONFI_UUID, PERMISSION_READ | PERMISSION_WRITE);
         smallMsg.addDescriptor(headerConfig);
 
@@ -137,7 +139,7 @@ public class BleWriter extends LayerBase
         //pull characteristic is read-only with no notify available
         BluetoothGattCharacteristic pullMsg = new BluetoothGattCharacteristic(PULL_MESSAGE_CHAR_UUID, PROPERTY_READ, PERMISSION_READ);
 
-
+        //add all of these characteristics to the service
         service.addCharacteristic(smallMsg);
         service.addCharacteristic(regMsg);
         service.addCharacteristic(locUpdate);
@@ -179,10 +181,14 @@ public class BleWriter extends LayerBase
 
         startLeAdvertising();
 
+        //create the gatt server
         mGattServer = mBluetoothManager.openGattServer(context,mGattServerCallback);
 
+        //add the service to the gatt server
         mGattServer.addService(createService());
 
+        //create the runnable that will pull messages off of the outgoing message
+        //queue and notify the 1-hop neighbors
         mRunnable = new Runnable() {
             @Override
             public void run() {
@@ -246,6 +252,7 @@ public class BleWriter extends LayerBase
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH) // ULTRA_LOW, LOW, MEDIUM, HIGH
                 .build();
 
+        //set of the advertising data to advertise the service!
         AdvertiseData data = new AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
                 .setIncludeTxPowerLevel(false)
@@ -253,14 +260,18 @@ public class BleWriter extends LayerBase
 //                .addServiceData(BASIC_AD)
                 .build();
 
+        //get an advertiser object
         mBluetoothLeAdvertiser = mBluetoothAdapter.getBluetoothLeAdvertiser();
         if (mBluetoothLeAdvertiser == null){
             Log.e(ERR_TAG, "no BLE advertiser assigned!!!");
             return;
         }
+
+        //start advertising
         mBluetoothLeAdvertiser.startAdvertising(settings, data, mAdvertiseCallback);
     }
 
+    //set up the simple callbacks for the advertisement
     private AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
@@ -293,6 +304,8 @@ public class BleWriter extends LayerBase
 
     /**** **** GATT Server **** ****/
     private final BluetoothGattServerCallback mGattServerCallback = new BluetoothGattServerCallback() {
+        
+        // make sure to log when other devices have connected and disconnected from the gatt server
         @Override
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
             super.onConnectionStateChange(device, status, newState);
@@ -308,6 +321,9 @@ public class BleWriter extends LayerBase
             }
         }
 
+        //Handle read requests to the read  characteristic. Can handle long reads
+        //also marks the last read time on this characteristic. We use this for a timeout
+        //on the availability of the data in this characteristic
         @Override
         public void onCharacteristicReadRequest(BluetoothDevice device,
                                                 int requestId, int offset, BluetoothGattCharacteristic characteristic) {
@@ -331,6 +347,9 @@ public class BleWriter extends LayerBase
             }
         }
 
+        //clients will try to write to the descriptor to enable notifications.
+        //this doesn't need to be done per characteristic
+        //TODO: only send a single notify request
         @Override
         public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
             if (CLIENT_CHAR_CONFI_UUID.equals(descriptor.getUuid())) {
@@ -355,7 +374,7 @@ public class BleWriter extends LayerBase
 
     };
 
-
+    //
     private UUID getUUID(int msgType) {
         switch (msgType) {
             case AdvertisementPayload.SMALL_MESSAGE:
@@ -373,19 +392,23 @@ public class BleWriter extends LayerBase
         }
     }
 
-    //private void notifyRegisteredDevice()
-
+   
+    //Notify the device
     private void notifyRegisteredDevices(int msgType, byte [] data) {
+        //convert the msg type int into a UUID
         UUID charUUID = getUUID(msgType);
 
         Log.d("BlueNet", "notifying!");
         if (null != charUUID) {
+            //get the characteristic
             BluetoothGattCharacteristic characteristic = mGattServer
                     .getService(BLUENET_SERVICE_UUID)
                     .getCharacteristic(charUUID);
 
+            //set the value of the characteristic
             characteristic.setValue(data);
 
+            // notify every registered device of the characteristic change
             for (BluetoothDevice device : mRegisteredDevices) {
                 try {
                     mGattServer.notifyCharacteristicChanged(device, characteristic, false);
@@ -398,6 +421,8 @@ public class BleWriter extends LayerBase
 
     /**** **** End of Gatt Server **** ****/
 
+    //Add the message to the queue and start the runnable which manages
+    //the queue if it hasn't already been started
     @Override
     public int write(AdvertisementPayload advPayload) {
         Log.d("BlueNet", "Hit BLEWriter");

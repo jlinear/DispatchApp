@@ -246,16 +246,25 @@ public class BleReader extends LayerBase
         BluetoothDevice device = result.getDevice();
         String deviceAddr = device.getAddress();
 
+        //check if we have already connected to this device. If we haven't then proceed
         if (!mConnectedDeviceMap.containsKey(deviceAddr)) {
 
+            //get the remote device
             BluetoothDevice remoteDevice = mBluetoothAdapter.getRemoteDevice(deviceAddr);
+            //check the connection state with the remote device
             int connectionState = mBluetoothManager.getConnectionState(remoteDevice, BluetoothProfile.GATT);
 
+            //if we are disconnected then proceed
             if(connectionState == BluetoothProfile.STATE_DISCONNECTED) {
+
+                //if we have not tried to connect to this device before marker that
+                //we are not currently handling a pending connection operation
                 if (null == mPendingConnect.get(deviceAddr)) {
                     mPendingConnect.put(deviceAddr, false);
                 }
 
+                //if we are not handling a pending connection then mark that we are now
+                //connect to the Gatt server
                 if (false == mPendingConnect.get(deviceAddr)) {              
                     // connect your device
                      Log.d("BlueNet", "trying to connect!");
@@ -278,6 +287,7 @@ public class BleReader extends LayerBase
         Integer index = mServiceSetupTables.get(gatt.getDevice().getAddress());
 
         if (index < mCharactericUUIDList.size()) {
+            //get the UUID of the current characteristic 
              UUID currentUUID = mCharactericUUIDList.get(mServiceSetupTables.get(gatt.getDevice().getAddress()));
             //Enable notifications locally for all msg type characteristics
             
@@ -289,19 +299,24 @@ public class BleReader extends LayerBase
             }
             else
             {
+                //get the characteristic we're interested in
                 BluetoothGattCharacteristic characteristic = service.getCharacteristic(currentUUID);
                 
                 // Enable notifications for this characteristic locally
                 gatt.setCharacteristicNotification(characteristic, true);
 
+                //get the descriptor for the characteristic
                 // Write on the config descriptor to be notified when the value changes
                 BluetoothGattDescriptor descriptor =
                         characteristic.getDescriptor(CLIENT_CHAR_CONFI_UUID);
+                
+                //Set the value of the descriptor to notification enabled
                 descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
 
 
                 mServiceSetupTables.put(gatt.getDevice().getAddress(), index + 1);
 
+                //write the descriptor
                 gatt.writeDescriptor(descriptor);
             }
 
@@ -316,6 +331,9 @@ public class BleReader extends LayerBase
             final BluetoothDevice device = gatt.getDevice();
 
             String address = device.getAddress();
+
+            //now that we have a connection result we can go ahead and
+            //set the pending connect value to false
             mPendingConnect.put(address, false);
 
             Log.i(INFO_TAG, String.format("onConnectionStatechange-- status: %d, state: %d", status, newState));
@@ -324,15 +342,22 @@ public class BleReader extends LayerBase
 
                 Log.i(INFO_TAG, "Connected to GATT server.");
 
+                //if we do not already have an object reference then we need to grab
+                //one to keep track of the devices to which we're connected
                 if (!mConnectedDeviceMap.containsKey(address)) {
                     mConnectedDeviceMap.put(address, gatt);
                 }
-                // Broadcast if needed
+
+                // Discover the services on the gatt server
                 Log.i(INFO_TAG, "Attempting to start service discovery:" +
                 gatt.discoverServices());
 
             } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
                 Log.i(INFO_TAG, "Disconnected from GATT server.");
+
+                //if we get a disconnect state and we have a reference to a device object
+                //then we need to close the connection to the server and remove the device
+                //from our map
                 if (mConnectedDeviceMap.containsKey(address)){
                     BluetoothGatt bluetoothGatt = mConnectedDeviceMap.get(address);
                     if( bluetoothGatt != null ){
@@ -358,6 +383,7 @@ public class BleReader extends LayerBase
 
         }
 
+        //when the services have been discovered, we need to set up the notifications
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == GATT_SUCCESS) {
@@ -382,6 +408,7 @@ public class BleReader extends LayerBase
             }
         }
 
+
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt,
                                       BluetoothGattDescriptor descriptor, int status) {
@@ -398,6 +425,8 @@ public class BleReader extends LayerBase
             }
         }
 
+        //when we have completed a read request we need to place the result
+        //in the appropriate placed mapped to the device who provided the data
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,
                                          BluetoothGattCharacteristic characteristic,
@@ -411,6 +440,8 @@ public class BleReader extends LayerBase
             }
         }
 
+        //when a notification fires, we'll receive the header for message on the
+        //appropriate characteristic
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
@@ -422,8 +453,9 @@ public class BleReader extends LayerBase
             AdvertisementPayload advPayload = new AdvertisementPayload();
             byte[] data = characteristic.getValue();
 
+            //if can successfully parsed the data then continue
             if (advPayload.fromBytes(data)) {
-                //set msgType
+                //set msgType from the characteristic UUID
                 advPayload.setMsgType(getMsgType(characteristic.getUuid()));
 
                 //Get BT-BN addr
@@ -440,10 +472,14 @@ public class BleReader extends LayerBase
                 advPayload.setRetriever(new MessageRetriever() {
                     @Override
                     public byte [] retrieve(byte [] id) {
+                        //grab the characteristic
                         BluetoothGattCharacteristic characteristic = bluetoothGatt
                                 .getService(BLUENET_SERVICE_UUID)
                                 .getCharacteristic(PULL_MESSAGE_CHAR_UUID);
+                        //initialize the pending message for the given device address
                         mPendingMessage.put(address, null);
+
+                        //read the characteristic
                         bluetoothGatt.readCharacteristic(characteristic);
 
                         //busy wait until message available
@@ -455,10 +491,12 @@ public class BleReader extends LayerBase
                             }
                         }
 
+                        //return the message
                         return mPendingMessage.get(address);
                     }
                 });
 
+                // provide payload to the next layer up
                 mReadCB.read(advPayload);
             }
 
