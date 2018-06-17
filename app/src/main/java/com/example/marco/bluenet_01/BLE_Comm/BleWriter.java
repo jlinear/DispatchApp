@@ -215,7 +215,7 @@ public class BleWriter extends LayerBase
                         }
                     }
                 }
-                mHandler.postDelayed(mRunnable, 30);
+                mHandler.postDelayed(this, 30);
             }
         };
     }
@@ -312,10 +312,10 @@ public class BleWriter extends LayerBase
             if (status == BluetoothGatt.GATT_SUCCESS){
                 if (newState == BluetoothGatt.STATE_CONNECTED){
                     //mDevice = device;
-                    Log.d(INFO_TAG,"Gatt Server connected.");
+                    Log.i(INFO_TAG,"Gatt Server connected to " + device.getAddress());
                 }
                 else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
-                    Log.d(INFO_TAG, "Gatt Server disconnected.");
+                    Log.i(INFO_TAG, String.format("Gatt Server disconnected from %s: status: %d", device.getAddress(), status));
                     mRegisteredDevices.remove(device);
                 }
             }
@@ -327,37 +327,45 @@ public class BleWriter extends LayerBase
         @Override
         public void onCharacteristicReadRequest(BluetoothDevice device,
                                                 int requestId, int offset, BluetoothGattCharacteristic characteristic) {
-            if (PULL_MESSAGE_CHAR_UUID.equals(characteristic.getUuid())) {
-                mLastRead = new Timestamp(System.currentTimeMillis());
+            
+             mLastRead = new Timestamp(System.currentTimeMillis());
 
-                //https://stackoverflow.com/questions/29512305/android-ble-peripheral-oncharacteristicread-return-wrong-value-or-part-of-it
-                if (offset > mCurrentMsg.length) {
-                    mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[]{0});
-                }
-                else {
-                    int size = mCurrentMsg.length - offset;
-                    byte[] response = new byte[size];
-
-                    for (int i = offset; i < mCurrentMsg.length; i++) {
-                        response[i - offset] = mCurrentMsg[i];
-                    }
-
-                    mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, response);
-                }
+             //https://stackoverflow.com/questions/29512305/android-ble-peripheral-oncharacteristicread-return-wrong-value-or-part-of-it
+            if (offset > mCurrentMsg.length) {
+                Log.i("BlueNet", "sending read response end");
+                mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[]{0});
+                return;
             }
+
+    
+               
+            int size = mCurrentMsg.length - offset;
+            byte[] response = new byte[size];
+
+            for (int i = offset; i < mCurrentMsg.length; i++) {
+                response[i - offset] = mCurrentMsg[i];
+            }
+                    
+            if (PULL_MESSAGE_CHAR_UUID.equals(characteristic.getUuid())) {
+                Log.i("BlueNet", String.format("sending read response of length %d of payload of length %d", size, mCurrentMsg.length));
+                mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, response);
+                return;
+            }
+
+            mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null);
+            
         }
 
         //clients will try to write to the descriptor to enable notifications.
         //this doesn't need to be done per characteristic
-        //TODO: only send a single notify request
         @Override
         public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
             if (CLIENT_CHAR_CONFI_UUID.equals(descriptor.getUuid())) {
                 if (Arrays.equals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE, value)) {
-                    Log.d(INFO_TAG, "Subscribe device to notifications: " + device);
+                    Log.i(INFO_TAG, "Subscribe device to notifications: " + device);
                     mRegisteredDevices.add(device);
                 } else if (Arrays.equals(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE, value)) {
-                    Log.d(INFO_TAG, "Unsubscribe device from notifications: " + device);
+                    Log.i(INFO_TAG, "Unsubscribe device from notifications: " + device);
                     mRegisteredDevices.remove(device);
                 }
 
@@ -369,6 +377,31 @@ public class BleWriter extends LayerBase
                 if (responseNeeded) {
                     mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null);
                 }
+            }
+        }
+
+        @Override
+        public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
+            if (CLIENT_CHAR_CONFI_UUID.equals(descriptor.getUuid())) {
+                Log.i("BlueNet", "Config descriptor read request");
+                byte[] returnValue;
+                if (mRegisteredDevices.contains(device)) {
+                    returnValue = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
+                } else {
+                    returnValue = BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE;
+                }
+                mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, returnValue);
+            }
+        }
+
+        @Override
+        public void onNotificationSent (BluetoothDevice device, int status) {
+            super.onNotificationSent(device, status);
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.i("BlueNet", "Notification sent!");
+            }
+            else {
+                Log.i("BlueNet", String.format("Failure: %d", status));
             }
         }
 
@@ -398,20 +431,24 @@ public class BleWriter extends LayerBase
         //convert the msg type int into a UUID
         UUID charUUID = getUUID(msgType);
 
-        Log.d("BlueNet", "notifying!");
+        
         if (null != charUUID) {
-            //get the characteristic
-            BluetoothGattCharacteristic characteristic = mGattServer
+            // notify every registered device of the characteristic change
+            for (BluetoothDevice device : mRegisteredDevices) {
+                //get the characteristic
+                BluetoothGattCharacteristic characteristic = mGattServer
                     .getService(BLUENET_SERVICE_UUID)
                     .getCharacteristic(charUUID);
 
-            //set the value of the characteristic
-            characteristic.setValue(data);
-
-            // notify every registered device of the characteristic change
-            for (BluetoothDevice device : mRegisteredDevices) {
+                //set the value of the characteristic
+                characteristic.setValue(data);
+                Log.i("BlueNet", "notifying " + device.getAddress());
                 try {
-                    mGattServer.notifyCharacteristicChanged(device, characteristic, false);
+                    boolean res = mGattServer.notifyCharacteristicChanged(device, characteristic, false);
+
+                    if (!res) {
+                        Log.e("BlueNet", "Notification unsuccessful!");
+                    }
                 } catch (NullPointerException x) {
                     Log.e("BlueNet", "A device disconnected unexpectedly");
                 }
@@ -425,8 +462,14 @@ public class BleWriter extends LayerBase
     //the queue if it hasn't already been started
     @Override
     public int write(AdvertisementPayload advPayload) {
-        Log.d("BlueNet", "Hit BLEWriter");
-        mOutQ.add(advPayload);
+        Log.i("BlueNet", "Hit BLEWriter");
+        boolean res = mOutQ.offer(advPayload);
+
+        if (!res) { //possible if queue is full or something
+            Log.e("BlueNet", "Failed to add to queue");
+        }
+
+
         if (!mStarted) {
             mRunnable.run();
             mStarted = true;
