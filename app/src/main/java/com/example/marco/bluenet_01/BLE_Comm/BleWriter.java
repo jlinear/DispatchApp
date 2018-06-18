@@ -275,7 +275,7 @@ public class BleWriter extends LayerBase
     private AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
-            Log.i(INFO_TAG, "LE Advertise Started.");
+            Log.i(INFO_TAG, "LE Advertise Started");
         }
 
         @Override
@@ -362,10 +362,10 @@ public class BleWriter extends LayerBase
         public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
             if (CLIENT_CHAR_CONFI_UUID.equals(descriptor.getUuid())) {
                 if (Arrays.equals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE, value)) {
-                    Log.i(INFO_TAG, "Subscribe device to notifications: " + device);
+                    Log.i(INFO_TAG, "Subscribe device to notifications: " + device.getAddress());
                     mRegisteredDevices.add(device);
                 } else if (Arrays.equals(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE, value)) {
-                    Log.i(INFO_TAG, "Unsubscribe device from notifications: " + device);
+                    Log.i(INFO_TAG, "Unsubscribe device from notifications: " + device.getAddress());
                     mRegisteredDevices.remove(device);
                 }
 
