@@ -262,6 +262,94 @@ public class BleReader extends LayerBase
         startLeScanning();
     }
 
+
+    @MainThread
+    public void addListener(BleCallback bleCallback) {
+        listeners.add(bleCallback);
+    }
+
+    @MainThread
+    public void removeListener(BleCallback bleCallback) {
+        listeners.remove(bleCallback);
+    }
+
+    //Not sure if these will be useful ***********
+    private void connect(BluetoothDevice autoConnect) {
+        bleHandler.obtainMessage(MSG_CONNECT, autoConnect).sendToTarget();
+    }
+
+    private void disconnect(BluetoothDevice device) {
+        bleHandler.obtainMessage(MSG_DISCONNECT, device).sendToTarget();
+    }
+    //********************************************
+   
+    @Override
+    public boolean handleMessage(Message message) {
+      switch (message.what) {
+        case MSG_CONNECT:
+          
+          break;
+        case MSG_CONNECTED:
+            doConnected((BluetoothDevice)message.obj);
+            break;
+        case MSG_DISCONNECT:
+          
+          break;
+        case MSG_DISCONNECTED:
+            doDisconnected((BluetoothDevice)message.obj);
+            break;
+        case MSG_SERVICES_DISCOVERED:
+            
+            break;
+        case MSG_NOTIFIED:
+            doNotified((BluetoothDevice)message.obj);
+            break;
+        case MSG_READ:
+            doRead((ReadRequest)message.obj);
+            break;
+        case MSG_REGISTER:
+            doRegister((RegRequest)message.obj);
+            break;
+        case MSG_REGISTERED:
+            doNotifyReady();
+      }
+      return true;
+    }
+
+    @MainThread
+    private void doConnect
+
+    @MainThread
+    private void doConnected (BluetoothDevice device) {
+    }
+
+    @MainThread
+    private void doDisconnected(BluetoothDevice device) {
+        
+    }
+
+    @MainThread
+    private void doNotifyReady() {
+        for (BleCallback listener : listeners) {
+          listener.onDeviceReady();
+        }
+    }
+
+    @MainThread
+    private void doNotified(BluetoothDevice device) {
+        
+    }
+
+    @MainThread
+    private void doRead(ReadRequest readReq) {
+       
+    }
+
+    @MainThread
+    private void doRegister(RegRequest regReq) {
+       
+    }
+
     /**** **** BLE SCAN **** ****/
     public void startLeScanning(){
         //scan filters

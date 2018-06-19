@@ -277,12 +277,12 @@ public class BleWriter extends LayerBase
     }
 
     //Not sure if these will be useful ***********
-    private void connect(boolean autoConncet) {
-        bleHandler.obtainMessage(MSG_CONNECT, autoConncet).sendToTarget();
+    private void connect(boolean autoConnect) {
+        bleHandler.obtainMessage(MSG_CONNECT, autoConnect).sendToTarget();
     }
 
-    private void disconnect() {
-        bleHandler.obtainMessage(MSG_DISCONNECT, bluetoothDevice).sendToTarget();
+    private void disconnect(BluetoothDevice device) {
+        bleHandler.obtainMessage(MSG_DISCONNECT, device).sendToTarget();
     }
     //********************************************
    
