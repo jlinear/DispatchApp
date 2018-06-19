@@ -47,8 +47,11 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Random;
 
 import nd.edu.bluenet_stack.Result;
 
@@ -115,7 +118,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
 //            BlueNet mBluenet = getArguments().getParcelable("bluenet")
 
         }
-        EventBus.getDefault().register(this);
+//        EventBus.getDefault().register(this);
 
     }
 
@@ -147,6 +150,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                 String rec_msg = new String(data, StandardCharsets.UTF_8);
                 showToast(src + ": " + rec_msg);
                 final String src_id = src;
+                EventBus.getDefault().post(mBluenet);
 
                 new AlertDialog.Builder(getContext())
                         .setTitle("New Message Received!")
@@ -167,16 +171,13 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                                 ft.commit();
                             }
                         })
-                        .setNegativeButton("Discard", new DialogInterface.OnClickListener(){
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i){
-                            }
-                        })
+                        .setNegativeButton("Discard", null)
                         .show();
 
                 return 0;
             }
         });
+
 
         // NOTE : We are calling the onFragmentInteraction() declared in the MainActivity
         // ie we are sending "Fragment 1" as title parameter when fragment1 is activated
@@ -217,7 +218,6 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
 
 
 
-
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -233,6 +233,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+
+//        EventBus.getDefault().unregister(this);
 
         //stop location updates when Activity is no longer active
         if (mFusedLocationProviderClient != null) {
@@ -261,10 +263,12 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                 for (int i = 0; i< nids.length; i++){
                     float lat = mBluenet.getLocation(nids[0]).mLatitude;
                     float lng = mBluenet.getLocation(nids[0]).mLongitude;
+                    Random ran = new Random();
+                    float marker_color = 330 * ran.nextFloat();
                     mMap.addMarker(new MarkerOptions()
                             .position(new LatLng(lat,lng))
                             .title(nids[i])
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                            .icon(BitmapDescriptorFactory.defaultMarker(marker_color))
                     );
                 }
 

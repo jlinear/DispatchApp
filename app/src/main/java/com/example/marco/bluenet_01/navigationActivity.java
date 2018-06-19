@@ -39,9 +39,15 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import nd.edu.bluenet_stack.Coordinate;
+import nd.edu.bluenet_stack.Result;
 
 
 public class navigationActivity extends AppCompatActivity
@@ -99,8 +105,10 @@ public class navigationActivity extends AppCompatActivity
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         myID = PreferenceManager.getDefaultSharedPreferences(this).getString("userName", "");
 
+        EventBus.getDefault().register(this);
 
 //        mBluenet = new BlueNet(this, this);
+
 //        myNeighbors = mBluenet.getNeighbors();
 //        for(int i = 0; i < myNeighbors.length; i ++){
 //            myNeighborsLoc[i] = mBluenet.getLocation(myNeighbors[i]);
@@ -117,6 +125,11 @@ public class navigationActivity extends AppCompatActivity
     }
 
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onBlueNetRec(BlueNet xBluenet){
+        showToast("New MSG RECEIVED!" + xBluenet.getNeighbors().length);
+
+    }
 
     @Override
     public void onBackPressed() {
@@ -143,6 +156,7 @@ public class navigationActivity extends AppCompatActivity
         super.onDestroy();
 //        mReader.mBluetoothGatt.disconnect();
 //        mWriter.mGattServer.close();
+        EventBus.getDefault().unregister(this);
 
     }
 

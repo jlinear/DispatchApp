@@ -5,10 +5,16 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
+import com.example.marco.bluenet_01.BLE_Comm.BlueNet;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
 
 import java.sql.Time;
 import java.util.Calendar;
@@ -73,6 +79,7 @@ public class chatFragment extends Fragment {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+        EventBus.getDefault().register(this);
     }
 
     @Override
@@ -110,6 +117,11 @@ public class chatFragment extends Fragment {
         return view;
     }
 
+    @Subscribe
+    public void RecBluenet(BlueNet mbluenet){
+        Log.d("CHAT","num of neighbors "+mbluenet.getNeighbors().length);
+    }
+
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -125,6 +137,7 @@ public class chatFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+        EventBus.getDefault().unregister(this);
     }
 
     private void checkBundle(){
