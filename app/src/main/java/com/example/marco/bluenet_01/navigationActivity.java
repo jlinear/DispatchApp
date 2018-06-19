@@ -277,6 +277,8 @@ public class navigationActivity extends AppCompatActivity
                 .show();
     }
 
+
+
     public void ChatFragClick(){
 //        Fragment fragment = null;
         new AlertDialog.Builder(this)
