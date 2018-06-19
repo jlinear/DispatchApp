@@ -37,11 +37,17 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.nio.charset.StandardCharsets;
+
+import co.intentservice.chatui.models.ChatMessage;
+import nd.edu.bluenet_stack.Result;
 
 
 /**
@@ -115,11 +121,24 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_maps, container, false);
 
+        final EditText edittext = view.findViewById(R.id.inputMessageText);
+        
         SendButton = view.findViewById(R.id.mapBroadcastButton);
         SendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                showToast("Halo! Test button, no actual usage.");
+                String out_msg = edittext.getText().toString();
+                mBluenet.write(mBluenet.getNeighbors()[0], out_msg);
+                showToast("message sent!");
+            }
+        });
+
+        mBluenet.regCallback(new Result() {
+            @Override
+            public int provide(String src, byte[] data) {
+                String rec_msg = new String(data, StandardCharsets.UTF_8);
+                showToast(src + ": " + rec_msg);
+                return 0;
             }
         });
 
@@ -198,19 +217,32 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                 if (0 < nids.length) {
                     Log.d("MapsLog", "length of nids " + nids.length +
                             " 1st neighbor id: "+nids[0] + " myID: " +mBluenet.getMyID());
+                    Log.d("LocLog", "lat: " + mBluenet.getLocation(nids[0]).mLatitude + " lng: " + mBluenet.getLocation(nids[0]).mLongitude);
+//                    mBluenet.write(nids[0], "hello there!");
+                }
+
+                mMap.clear();
+                for (int i = 0; i< nids.length; i++){
+                    float lat = mBluenet.getLocation(nids[0]).mLatitude;
+                    float lng = mBluenet.getLocation(nids[0]).mLongitude;
+                    mMap.addMarker(new MarkerOptions()
+                            .position(new LatLng(lat,lng))
+                            .title(nids[i])
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                    );
                 }
 
                 // makes sure location is updated in the beginning
-                if(!locationFound){
-                    // add marker for debugging
-                    mMap.addMarker(new MarkerOptions()
-                            .position(new LatLng(lastLocation.getLatitude(),lastLocation.getLongitude()))
-                            .title(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("userName", ""))
-                            .snippet(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("statusPref", ""))
-                    );
-                    updateLocation(lastLocation);
-                    locationFound = true;
-                }
+//                if(!locationFound){
+//                    // add marker for debugging
+//                    mMap.addMarker(new MarkerOptions()
+//                            .position(new LatLng(lastLocation.getLatitude(),lastLocation.getLongitude()))
+//                            .title(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("userName", ""))
+//                            .snippet(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("statusPref", ""))
+//                    );
+//                    updateLocation(lastLocation);
+//                    locationFound = true;
+//                }
             }
         };
 

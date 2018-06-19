@@ -22,9 +22,15 @@ import android.location.Location;
 import android.os.ParcelUuid;
 import android.os.SystemClock;
 import android.util.Log;
-import android.os.Handler;
+
 
 import com.example.marco.bluenet_01.BuildConfig;
+
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.Message;
+import android.support.annotation.MainThread;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -52,11 +58,24 @@ import static android.bluetooth.BluetoothGatt.GATT_SUCCESS;
 
 public class BleReader extends LayerBase
         implements
-        Query{
+        Query,
+        Handler.Callback{
 
     private static final String ERR_TAG = "FATAL ERROR";
     private static final String INFO_TAG = "APP_INFO";
     private static final String DEBUG_TAG = "DEBUG";
+
+    private static final int MSG_CONNECT = 10;
+    private static final int MSG_CONNECTED = 20;
+    private static final int MSG_DISCONNECT = 30;
+    private static final int MSG_DISCONNECTED = 40;
+    private static final int MSG_SERVICES_DISCOVERED = 50;
+    private static final int MSG_NOTIFIED = 60;
+    private static final int MSG_READ = 70;
+    private static final int MSG_REGISTER = 80;
+    private static final int MSG_REGISTERED = 90;
+
+
 
     //service UUID
     public static final UUID BLUENET_SERVICE_UUID =
@@ -93,11 +112,6 @@ public class BleReader extends LayerBase
     private BluetoothManager mBluetoothManager;
     private BluetoothLeScanner mBluetoothLeScanner;
 
-    private int mConnectionState = STATE_DISCONNECTED;
-    private static final int STATE_DISCONNECTED = 0;
-    private static final int STATE_CONNECTING = 1;
-    private static final int STATE_CONNECTED = 2;
-
    // public List<BluetoothGattService> mBluetoothGattService;
     private Map<String, byte[]> mBTToBNAddrMap = new HashMap<String, byte[]>();
    // public Set<BluetoothDevice> mBleDeviceSet;
@@ -118,6 +132,27 @@ public class BleReader extends LayerBase
     private int mRunCounter = 0;
     private ConcurrentLinkedQueue<AdvertisementPayload> mInQ = new ConcurrentLinkedQueue<>();
     private boolean mStarted = false;
+
+
+    private Handler mainHandler = new Handler(Looper.getMainLooper(), this);
+    private Handler bleHandler;
+    private Context context;
+    private MyBleCallback myBleCallback = new MyBleCallback();
+    private Set<BleCallback> listeners = new HashSet<>();
+
+    public interface BleCallback {
+        /**
+         * Signals that the BLE device is ready for communication.
+         */
+        @MainThread
+        void onDeviceReady();
+
+        /**
+         * Signals that a connection to the device was lost.
+         */
+        @MainThread
+        void onDeviceDisconnected();
+    }
 
     private UUID getUUID(int msgType) {
         switch (msgType) {
@@ -165,7 +200,7 @@ public class BleReader extends LayerBase
         mCharactericUUIDList.add(GROUP_QUERY_CHAR_UUID);
         mCharactericUUIDList.add(GROUP_UPDATE_CHAR_UUID);
 
-        this.context = context.getApplicationContext();
+        this.context = context;//.getApplicationContext();
         this.activity = activity.getParent();
         this.originalName = activity.getSharedPreferences(BuildConfig.APPLICATION_ID, Context.MODE_PRIVATE).getString("originalName", "");
 
@@ -176,7 +211,7 @@ public class BleReader extends LayerBase
         }
         // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
         // BluetoothAdapter through BluetoothManager.
-        mBluetoothManager = (BluetoothManager) activity.getSystemService(context.BLUETOOTH_SERVICE);
+        mBluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = mBluetoothManager.getAdapter();
         // Checks if Bluetooth is supported on the device.
         if (mBluetoothAdapter == null) {
