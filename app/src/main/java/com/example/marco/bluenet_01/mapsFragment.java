@@ -12,6 +12,8 @@ import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.preference.PreferenceManager;
 import android.text.InputType;
 import android.text.method.DigitsKeyListener;
@@ -37,11 +39,16 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.nio.charset.StandardCharsets;
+
+import nd.edu.bluenet_stack.Result;
 
 
 /**
@@ -115,11 +122,51 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_maps, container, false);
 
+        final EditText edittext = view.findViewById(R.id.inputMessageText);
         SendButton = view.findViewById(R.id.mapBroadcastButton);
         SendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                showToast("Halo! Test button, no actual usage.");
+                String out_msg = edittext.getText().toString();
+                mBluenet.write(mBluenet.getNeighbors()[0], out_msg);
+                showToast("message sent!");
+            }
+        });
+
+        mBluenet.regCallback(new Result() {
+            @Override
+            public int provide(String src, byte[] data) {
+                String rec_msg = new String(data, StandardCharsets.UTF_8);
+                showToast(src + ": " + rec_msg);
+                final String src_id = src;
+
+                new AlertDialog.Builder(getContext())
+                        .setTitle("New Message Received!")
+                        .setMessage("You have a new message from "+src)
+                        .setPositiveButton("Read", new DialogInterface.OnClickListener(){
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i){
+                                chatFragment frag = new chatFragment();
+                                Bundle bundle = new Bundle();
+                                bundle.putString("chattingName", src_id);
+                                frag.setArguments(bundle);
+
+                                //NOTE: Fragment changing code
+                                FragmentTransaction ft = getActivity().getSupportFragmentManager().beginTransaction();
+                                ft.replace(R.id.mainFrame, frag);
+                                NavigationView navigationView = (NavigationView) getActivity().findViewById(R.id.nav_view);
+                                navigationView.setCheckedItem(R.id.nav_chat);
+                                ft.commit();
+                            }
+                        })
+                        .setNegativeButton("Discard", new DialogInterface.OnClickListener(){
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i){
+                            }
+                        })
+                        .show();
+
+                return 0;
             }
         });
 
@@ -198,6 +245,19 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                 if (0 < nids.length) {
                     Log.d("MapsLog", "length of nids " + nids.length +
                             " 1st neighbor id: "+nids[0] + " myID: " +mBluenet.getMyID());
+                    Log.d("LocLog", "lat: " + mBluenet.getLocation(nids[0]).mLatitude +
+                            " lng: " + mBluenet.getLocation(nids[0]).mLongitude);
+                }
+
+                mMap.clear();
+                for (int i = 0; i< nids.length; i++){
+                    float lat = mBluenet.getLocation(nids[0]).mLatitude;
+                    float lng = mBluenet.getLocation(nids[0]).mLongitude;
+                    mMap.addMarker(new MarkerOptions()
+                            .position(new LatLng(lat,lng))
+                            .title(nids[i])
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                    );
                 }
 
                 // makes sure location is updated in the beginning
@@ -310,6 +370,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
             }
         });
     }
+
+
 
 
 
