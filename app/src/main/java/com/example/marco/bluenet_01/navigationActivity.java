@@ -68,8 +68,6 @@ public class navigationActivity extends AppCompatActivity
     public Coordinate[] myNeighborsLoc;
 
     Fragment fragment = null;
-
-
     Fragment mapsFragment = new mapsFragment();
 
 
@@ -105,9 +103,10 @@ public class navigationActivity extends AppCompatActivity
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         myID = PreferenceManager.getDefaultSharedPreferences(this).getString("userName", "");
 
-        EventBus.getDefault().register(this);
+//        EventBus.getDefault().register(this);
 
-//        mBluenet = new BlueNet(this, this);
+        mBluenet = new BlueNet(this, this);
+        EventBus.getDefault().postSticky(mBluenet);
 
 //        myNeighbors = mBluenet.getNeighbors();
 //        for(int i = 0; i < myNeighbors.length; i ++){
@@ -115,9 +114,6 @@ public class navigationActivity extends AppCompatActivity
 //        }
 
         //NOTE:  Open fragment1 initially.
-//        Bundle bundle = new Bundle();
-//        bundle.putParcelable("bluenet", mBluenet);
-//        mapsFragment.setArguments(bundle);
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
         ft.replace(R.id.mainFrame, mapsFragment);
         ft.commit();
@@ -125,11 +121,11 @@ public class navigationActivity extends AppCompatActivity
     }
 
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onBlueNetRec(BlueNet xBluenet){
-        showToast("New MSG RECEIVED!" + xBluenet.getNeighbors().length);
-
-    }
+//    @Subscribe(threadMode = ThreadMode.MAIN)
+//    public void onBlueNetRec(BlueNet xBluenet){
+//        showToast("New MSG RECEIVED!" + xBluenet.getNeighbors().length);
+//
+//    }
 
     @Override
     public void onBackPressed() {
@@ -156,7 +152,7 @@ public class navigationActivity extends AppCompatActivity
         super.onDestroy();
 //        mReader.mBluetoothGatt.disconnect();
 //        mWriter.mGattServer.close();
-        EventBus.getDefault().unregister(this);
+//        EventBus.getDefault().unregister(this);
 
     }
 

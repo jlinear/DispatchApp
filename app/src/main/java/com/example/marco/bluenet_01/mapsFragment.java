@@ -51,7 +51,10 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 import nd.edu.bluenet_stack.Result;
 
@@ -83,6 +86,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
 
     Button SendButton;
     BlueNet mBluenet;
+    Set<String> neighbor_ids;
 
 
 
@@ -111,21 +115,18 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mBluenet = new BlueNet(getContext(), getActivity());
+//        mBluenet = new BlueNet(getContext(), getActivity());
+        neighbor_ids = new HashSet<String>();
+        EventBus.getDefault().register(this);
+        mBluenet = EventBus.getDefault().getStickyEvent(BlueNet.class);
         if (getArguments() != null) {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
-//            BlueNet mBluenet = getArguments().getParcelable("bluenet")
-
         }
-//        EventBus.getDefault().register(this);
+
 
     }
 
-//    @Subscribe (tag = "zheng")
-//    public void onRecieve(String result) {
-//        Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
-//    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -139,28 +140,33 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
             @Override
             public void onClick(View view) {
                 String out_msg = edittext.getText().toString();
-                mBluenet.write(mBluenet.getNeighbors()[0], out_msg);
-                showToast("message sent!");
+                for(int i = 0; i< mBluenet.getNeighbors().length; i++){
+                    mBluenet.write(mBluenet.getNeighbors()[i], out_msg);
+                }
+                showToast("Your msg has been broadcast!");
+                edittext.setText("");
             }
         });
 
         mBluenet.regCallback(new Result() {
             @Override
             public int provide(String src, byte[] data) {
-                String rec_msg = new String(data, StandardCharsets.UTF_8);
+                final String rec_msg = new String(data, StandardCharsets.UTF_8);
                 showToast(src + ": " + rec_msg);
                 final String src_id = src;
-                EventBus.getDefault().post(mBluenet);
+//                EventBus.getDefault().post(mBluenet);
 
                 new AlertDialog.Builder(getContext())
                         .setTitle("New Message Received!")
-                        .setMessage("You have a new message from "+src)
+                        .setMessage("You have a new message from: "+src)
                         .setPositiveButton("Read", new DialogInterface.OnClickListener(){
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i){
                                 chatFragment frag = new chatFragment();
                                 Bundle bundle = new Bundle();
                                 bundle.putString("chattingName", src_id);
+                                bundle.putString("FirstMsg",rec_msg);
+                                bundle.putLong("FirstMsgTime",System.currentTimeMillis());
                                 frag.setArguments(bundle);
 
                                 //NOTE: Fragment changing code
@@ -177,7 +183,6 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                 return 0;
             }
         });
-
 
         // NOTE : We are calling the onFragmentInteraction() declared in the MainActivity
         // ie we are sending "Fragment 1" as title parameter when fragment1 is activated
@@ -216,6 +221,11 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         return view;
     }
 
+    @Subscribe(sticky = true, threadMode = ThreadMode.MAIN)
+    public void onBlueNet(BlueNet xBluenet) {
+        Log.d("EVENTBUS","bluenet posted!");
+    }
+
 
 
     @Override
@@ -234,7 +244,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         super.onDetach();
         mListener = null;
 
-//        EventBus.getDefault().unregister(this);
+        EventBus.getDefault().unregister(this);
+        neighbor_ids.clear();
 
         //stop location updates when Activity is no longer active
         if (mFusedLocationProviderClient != null) {
@@ -247,7 +258,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         @Override
         public void onLocationResult(LocationResult locationResult) {
             for (Location location : locationResult.getLocations()) {
-                Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
+                Log.i("MapsActivity", "My Location: " + location.getLatitude() + " " + location.getLongitude());
                 mBluenet.setLocation((float)location.getLatitude(), (float)location.getLongitude());
                 lastLocation = location;
                 String[] nids = mBluenet.getNeighbors();
@@ -257,35 +268,51 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                             " 1st neighbor id: "+nids[0] + " myID: " +mBluenet.getMyID());
                     Log.d("LocLog", "lat: " + mBluenet.getLocation(nids[0]).mLatitude +
                             " lng: " + mBluenet.getLocation(nids[0]).mLongitude);
+                }else{
+                    showToast("Searching for neighbors, please wait...");
                 }
 
-                mMap.clear();
+//                mMap.clear();
+                if (0 < nids.length){
                 for (int i = 0; i< nids.length; i++){
-                    float lat = mBluenet.getLocation(nids[0]).mLatitude;
-                    float lng = mBluenet.getLocation(nids[0]).mLongitude;
-                    Random ran = new Random();
-                    float marker_color = 330 * ran.nextFloat();
-                    mMap.addMarker(new MarkerOptions()
-                            .position(new LatLng(lat,lng))
-                            .title(nids[i])
-                            .icon(BitmapDescriptorFactory.defaultMarker(marker_color))
-                    );
-                }
+                    if(!neighbor_ids.contains(nids[i])){
+                        neighbor_ids.add(nids[i]);
+                        float lat = mBluenet.getLocation(nids[0]).mLatitude;
+                        float lng = mBluenet.getLocation(nids[0]).mLongitude;
+                        Random ran = new Random();
+                        float marker_color = 330 * ran.nextFloat();
+                        mMap.addMarker(new MarkerOptions()
+                                .position(new LatLng(lat,lng))
+                                .title(nids[i])
+                                .icon(BitmapDescriptorFactory.defaultMarker(marker_color))
+                        );
+                    }
+
+//                    neighbor_ids.add(nids[i]);
+//                    float lat = mBluenet.getLocation(nids[0]).mLatitude;
+//                    float lng = mBluenet.getLocation(nids[0]).mLongitude;
+//                    Random ran = new Random();
+//                    float marker_color = 330 * ran.nextFloat();
+//                    mMap.addMarker(new MarkerOptions()
+//                            .position(new LatLng(lat,lng))
+//                            .title(nids[i])
+//                            .icon(BitmapDescriptorFactory.defaultMarker(marker_color))
+//                    );
+                }}
 
                 // makes sure location is updated in the beginning
                 if(!locationFound){
-                    // add marker for debugging
-                    mMap.addMarker(new MarkerOptions()
-                            .position(new LatLng(lastLocation.getLatitude(),lastLocation.getLongitude()))
-                            .title(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("userName", ""))
-                            .snippet(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("statusPref", ""))
-                    );
+                    // add self marker for debugging
+//                    mMap.addMarker(new MarkerOptions()
+//                            .position(new LatLng(lastLocation.getLatitude(),lastLocation.getLongitude()))
+//                            .title(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("userName", ""))
+//                            .snippet(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("statusPref", ""))
+//                    );
                     updateLocation(lastLocation);
                     locationFound = true;
                 }
             }
-        };
-
+        }
     };
 
 

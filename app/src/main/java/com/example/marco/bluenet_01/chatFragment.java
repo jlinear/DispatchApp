@@ -1,10 +1,14 @@
 package com.example.marco.bluenet_01;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +20,7 @@ import com.example.marco.bluenet_01.BLE_Comm.BlueNet;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.util.Calendar;
 import java.util.Date;
@@ -23,6 +28,7 @@ import java.util.List;
 
 import co.intentservice.chatui.ChatView;
 import co.intentservice.chatui.models.ChatMessage;
+import nd.edu.bluenet_stack.Result;
 
 
 /**
@@ -47,8 +53,10 @@ public class chatFragment extends Fragment {
     TextView headerText;
     String headerTextString;
     ChatView chatView;
-    //BlueNetInterface blueNetInterface;
     String chattingWith;
+    String firstMsg;
+    Long firstMsgTime;
+    BlueNet mBluenet;
 
     public chatFragment() {
         // Required empty public constructor
@@ -80,6 +88,8 @@ public class chatFragment extends Fragment {
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
         EventBus.getDefault().register(this);
+        mBluenet = EventBus.getDefault().getStickyEvent(BlueNet.class);
+//        Log.d("CHAT","xbluenet got!"+ mBluenet.getNeighbors().length);
     }
 
     @Override
@@ -105,14 +115,30 @@ public class chatFragment extends Fragment {
         chatView.setOnSentMessageListener(new ChatView.OnSentMessageListener() {
             @Override
             public boolean sendMessage(ChatMessage chatMessage) {
-                // TODO: Jian, implement write below
-                //blueNetInterface.write(chattingWith, chatMessage.getMessage());
+                // TODO: Implement write below
+                mBluenet.write(chattingWith,chatMessage.getMessage());
+
                 return true; // returns true when it should put message on screen, false if it shouldn't
             }
         });
 
         // this is how you add messages to the screen
-        chatView.addMessage(new ChatMessage("new received message", System.currentTimeMillis(), ChatMessage.Type.RECEIVED));
+        chatView.addMessage(new ChatMessage("test static default message",
+                                    System.currentTimeMillis(), ChatMessage.Type.RECEIVED));
+        if (firstMsg != null && firstMsgTime != 0) {
+            chatView.addMessage(new ChatMessage(firstMsg, firstMsgTime, ChatMessage.Type.RECEIVED));
+        }
+
+        mBluenet.regCallback(new Result() {
+            @Override
+            public int provide(String src, byte[] data) {
+                String rec_msg = new String(data, StandardCharsets.UTF_8);
+                chatView.addMessage(new ChatMessage(rec_msg, System.currentTimeMillis(), ChatMessage.Type.RECEIVED));
+
+                return 0;
+            }
+        });
+
 
         return view;
     }
@@ -144,6 +170,8 @@ public class chatFragment extends Fragment {
         Bundle bundle = this.getArguments();
         if (bundle != null) {
             chattingWith = bundle.getString("chattingName", null);
+            firstMsg = bundle.getString("FirstMsg", null);
+            firstMsgTime = bundle.getLong("FirstMsgTime", 0);
             if(chattingWith != null){
                 headerText.setText(null);
                 mListener.onFragmentInteraction("Chat with: " + chattingWith);
