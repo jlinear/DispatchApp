@@ -46,6 +46,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.greenrobot.eventbus.EventBus;
+
 import java.nio.charset.StandardCharsets;
 
 import nd.edu.bluenet_stack.Result;
@@ -110,11 +112,17 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         if (getArguments() != null) {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
-//            BlueNet mBluenet = getArguments().getParcelable("bluenet");
+//            BlueNet mBluenet = getArguments().getParcelable("bluenet")
 
         }
+        EventBus.getDefault().register(this);
 
     }
+
+//    @Subscribe (tag = "zheng")
+//    public void onRecieve(String result) {
+//        Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+//    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
