@@ -57,6 +57,11 @@ import java.util.Random;
 import java.util.Set;
 
 import nd.edu.bluenet_stack.Group;
+
+import java.nio.charset.StandardCharsets;
+
+import co.intentservice.chatui.models.ChatMessage;
+
 import nd.edu.bluenet_stack.Result;
 
 
@@ -136,6 +141,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         View view = inflater.inflate(R.layout.fragment_maps, container, false);
 
         final EditText edittext = view.findViewById(R.id.inputMessageText);
+
         SendButton = view.findViewById(R.id.mapBroadcastButton);
         SendButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -312,7 +318,20 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
 //                    );
                     updateLocation(lastLocation);
                     locationFound = true;
+
                 }
+
+                // makes sure location is updated in the beginning
+//                if(!locationFound){
+//                    // add marker for debugging
+//                    mMap.addMarker(new MarkerOptions()
+//                            .position(new LatLng(lastLocation.getLatitude(),lastLocation.getLongitude()))
+//                            .title(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("userName", ""))
+//                            .snippet(PreferenceManager.getDefaultSharedPreferences(getContext()).getString("statusPref", ""))
+//                    );
+//                    updateLocation(lastLocation);
+//                    locationFound = true;
+//                }
             }
         }
     };

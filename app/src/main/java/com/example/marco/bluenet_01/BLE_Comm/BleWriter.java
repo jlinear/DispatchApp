@@ -34,6 +34,11 @@ import java.util.UUID;
 
 
 import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.Message;
+import android.support.annotation.MainThread;
+
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 
@@ -56,10 +61,21 @@ import static android.bluetooth.BluetoothGattService.SERVICE_TYPE_PRIMARY;
 public class BleWriter extends LayerBase
         implements
         Writer,
-        Query{
+        Query,
+        Handler.Callback{
 
     private static final String ERR_TAG = "FATAL ERROR";
     private static final String INFO_TAG = "APP_INFO";
+
+    private static final int MSG_CONNECT = 10;
+    private static final int MSG_CONNECTED = 20;
+    private static final int MSG_DISCONNECT = 30;
+    private static final int MSG_DISCONNECTED = 40;
+    private static final int MSG_NOTIFY = 50;
+    private static final int MSG_NOTIFIED = 60;
+    private static final int MSG_READ = 70;
+    private static final int MSG_REGISTER = 80;
+    private static final int MSG_REGISTERED = 90;
 
     public Context context;
     public Activity activity;
@@ -92,7 +108,7 @@ public class BleWriter extends LayerBase
 
     //for configuring notifications
     private static final UUID CLIENT_CHAR_CONFI_UUID = UUID.
-            fromString("00002a08-0000-1000-8000-00805f9b34fb");
+            fromString("b620c8d5-7942-45c8-8f69-2ea5bb275603");//00002a08-0000-1000-8000-00805f9b34fb");
 
 
 
@@ -113,6 +129,304 @@ public class BleWriter extends LayerBase
     private byte [] mCurrentMsg = null;
     private Timestamp mLastRead = null;
     private final long mReadTimeout = 60L;
+
+    private Handler mainHandler = new Handler(Looper.getMainLooper(), this);
+    private Handler bleHandler;
+    //private BleCallback myBleCallback = new BleCallback();
+
+    private Set<BleCallback> listeners = new HashSet<>();
+
+    public interface BleCallback {
+        /**
+         * Signals that the BLE device is ready for communication.
+         */
+        @MainThread
+        void onDeviceReady();
+
+        /**
+         * Signals that a connection to the device was lost.
+         */
+        @MainThread
+        void onDeviceDisconnected();
+    }
+
+    public class ReadRequest {
+        public BluetoothDevice device;
+        public int requestId;
+        public int offset;
+        public BluetoothGattCharacteristic characteristic;
+
+        public ReadRequest(BluetoothDevice device,
+                                                int requestId, int offset, BluetoothGattCharacteristic characteristic) {
+            this.device = device;
+            this.requestId = requestId;
+            this.offset = offset;
+            this.characteristic = characteristic;
+        }
+    }
+
+    public class RegRequest {
+        public BluetoothDevice device;
+        public int requestId;
+        public BluetoothGattDescriptor descriptor;
+        public boolean preparedWrite;
+        public boolean responseNeeded;
+        public int offset;
+        public byte[] value;
+
+        public RegRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor,
+                         boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
+            this.device = device;
+            this.requestId = requestId;
+            this.descriptor = descriptor;
+            this.preparedWrite = preparedWrite;
+            this.responseNeeded = responseNeeded;
+            this.offset = offset;
+            this.value = value;
+        }
+    }
+
+    public class NotifyRequest {
+        public int type;
+        public byte [] header;
+        public byte [] recipient;
+
+        public NotifyRequest(int type, byte [] header, byte [] recipient) {
+            this.type = type;
+            this.header = header;
+            this.recipient = recipient;
+        }
+    }
+
+    public BleWriter(Context context, Activity activity){
+        this.context = context;//.getApplicationContext();
+        this.activity = activity.getParent();
+        this.originalName = activity.getSharedPreferences(BuildConfig.APPLICATION_ID, Context.MODE_PRIVATE).getString("originalName", "");
+
+        // Use this to check if BLE is supported on the device.
+        if (!activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Log.e(ERR_TAG, "BLE not supported!");
+            activity.finish();
+        }
+        // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
+        // BluetoothAdapter through BluetoothManager.
+        final BluetoothManager mBluetoothManager =
+                (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothAdapter = mBluetoothManager.getAdapter();
+        // Checks if Bluetooth is supported on the device.
+        if (mBluetoothAdapter == null) {
+            //Toast.makeText(this, "Bluetooth not supported", Toast.LENGTH_SHORT).show();
+            Log.e(ERR_TAG, "Bluetooth not supported!");
+            activity.finish();
+            return;
+        }
+        // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
+        // fire an intent to display a dialog asking the user to grant permission to enable it.
+        if (!mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            activity.startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        }
+
+        HandlerThread handlerThread = new HandlerThread("BleThread");
+        handlerThread.start();
+        bleHandler = new Handler(handlerThread.getLooper(), this);
+
+        //create the gatt server
+        mGattServer = mBluetoothManager.openGattServer(context,mGattServerCallback);
+
+        //add the service to the gatt server
+        mGattServer.addService(createService());
+
+        startLeAdvertising();
+
+        //create the runnable that will pull messages off of the outgoing message
+        //queue and notify the 1-hop neighbors
+        mRunnable = new Runnable() {
+            @Override
+            public void run() {
+
+                //if we haven't ever set lastRead or if our elapsed time since the last
+                //time we read is greater than the timeout threshold, go ahead a grab
+                //a new message to send
+                if (mLastRead == null
+                        || mReadTimeout < (System.currentTimeMillis() - mLastRead.getTime())) {
+                    AdvertisementPayload toSend = mOutQ.poll();
+
+                    if (null != toSend) {
+                        byte[] header = toSend.getHeader();
+                        mCurrentMsg = toSend.getMsg();
+                        int type = toSend.getMsgType();
+
+                        //Now write to my characteristic
+                        //iterate over list of devices and notify
+                        byte[] nextHopNeighbor = toSend.getOneHopNeighbor();
+                        NotifyRequest notifyReq = new NotifyRequest(type, header, nextHopNeighbor);
+                        bleHandler.obtainMessage(MSG_NOTIFY, notifyReq).sendToTarget();
+                    }
+                }
+                mHandler.postDelayed(this, 30);
+            }
+        };
+    }
+
+    @MainThread
+    public void addListener(BleCallback bleCallback) {
+        listeners.add(bleCallback);
+    }
+
+    @MainThread
+    public void removeListener(BleCallback bleCallback) {
+        listeners.remove(bleCallback);
+    }
+
+    //Not sure if these will be useful ***********
+    private void connect(boolean autoConnect) {
+        bleHandler.obtainMessage(MSG_CONNECT, autoConnect).sendToTarget();
+    }
+
+    private void disconnect(BluetoothDevice device) {
+        bleHandler.obtainMessage(MSG_DISCONNECT, device).sendToTarget();
+    }
+    //********************************************
+   
+    @Override
+    public boolean handleMessage(Message message) {
+      switch (message.what) {
+        case MSG_CONNECT:
+          
+          break;
+        case MSG_CONNECTED:
+            doConnected((BluetoothDevice)message.obj);
+            break;
+        case MSG_DISCONNECT:
+          
+          break;
+        case MSG_DISCONNECTED:
+            doDisconnected((BluetoothDevice)message.obj);
+            break;
+        case MSG_NOTIFY:
+            doNotifyRegisteredDevice((NotifyRequest)message.obj);
+            break;
+        case MSG_NOTIFIED:
+            doNotified((BluetoothDevice)message.obj);
+            break;
+        case MSG_READ:
+            doRead((ReadRequest)message.obj);
+            break;
+        case MSG_REGISTER:
+            doRegister((RegRequest)message.obj);
+            break;
+        case MSG_REGISTERED:
+            doNotifyReady();
+      }
+      return true;
+    }
+
+    @MainThread
+    private void doConnected (BluetoothDevice device) {
+        Log.i(INFO_TAG,"Gatt Server connected to " + device.getAddress());
+    }
+
+    @MainThread
+    private void doDisconnected(BluetoothDevice device) {
+        Log.i(INFO_TAG, String.format("Gatt Server disconnected from %s", device.getAddress()));
+        mRegisteredDevices.remove(device);
+    }
+
+    @MainThread
+    private void doNotifyReady() {
+        for (BleCallback listener : listeners) {
+          listener.onDeviceReady();
+        }
+    }
+
+    @MainThread
+    private void doNotifyRegisteredDevice(NotifyRequest notifyReq) {
+        //convert the msg type int into a UUID
+        UUID charUUID = getUUID(notifyReq.type);
+        
+        if (null != charUUID) {
+            if (null == notifyReq.recipient) { //if null then send to all registered
+                // notify every registered device of the characteristic change
+                for (BluetoothDevice device : mRegisteredDevices) {
+                    //get the characteristic
+                    BluetoothGattCharacteristic characteristic = mGattServer
+                        .getService(BLUENET_SERVICE_UUID)
+                        .getCharacteristic(charUUID);
+
+                    //set the value of the characteristic
+                    characteristic.setValue(notifyReq.header);
+                    Log.i("BlueNet", "notifying " + device.getAddress());
+                    try {
+                        boolean res = mGattServer.notifyCharacteristicChanged(device, characteristic, false);
+
+                        if (!res) {
+                            Log.e("BlueNet", "Notification unsuccessful!");
+                        }
+                    } catch (NullPointerException x) {
+                        Log.e("BlueNet", "A device disconnected unexpectedly");
+                    }
+                }
+            }
+            else {
+                //send to identified recipient
+            }
+        }
+    }
+
+    @MainThread
+    private void doNotified(BluetoothDevice device) {
+         Log.i("BlueNet", "Notification sent!");
+    }
+
+    @MainThread
+    private void doRead(ReadRequest readReq) {
+        mLastRead = new Timestamp(System.currentTimeMillis());
+
+         //https://stackoverflow.com/questions/29512305/android-ble-peripheral-oncharacteristicread-return-wrong-value-or-part-of-it
+        if (readReq.offset > mCurrentMsg.length) {
+            Log.i("BlueNet", "sending read response end");
+            mGattServer.sendResponse(readReq.device, readReq.requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[]{0});
+            return;
+        }
+
+        int size = mCurrentMsg.length - readReq.offset;
+        byte[] response = new byte[size];
+
+        for (int i = readReq.offset; i < mCurrentMsg.length; i++) {
+            response[i - readReq.offset] = mCurrentMsg[i];
+        }
+                
+        if (PULL_MESSAGE_CHAR_UUID.equals(readReq.characteristic.getUuid())) {
+            Log.i("BlueNet", String.format("sending read response of length %d of payload of length %d", size, mCurrentMsg.length));
+            mGattServer.sendResponse(readReq.device, readReq.requestId, BluetoothGatt.GATT_SUCCESS, readReq.offset, response);
+            return;
+        }
+
+        mGattServer.sendResponse(readReq.device, readReq.requestId, BluetoothGatt.GATT_FAILURE, 0, null);
+    }
+
+    @MainThread
+    private void doRegister(RegRequest regReq) {
+        if (CLIENT_CHAR_CONFI_UUID.equals(regReq.descriptor.getUuid())) {
+            if (Arrays.equals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE, regReq.value)) {
+                Log.i(INFO_TAG, "Subscribe device to notifications: " + regReq.device.getAddress());
+                mRegisteredDevices.add(regReq.device);
+            } else if (Arrays.equals(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE, regReq.value)) {
+                Log.i(INFO_TAG, "Unsubscribe device from notifications: " + regReq.device.getAddress());
+                mRegisteredDevices.remove(regReq.device);
+            }
+
+            if (regReq.responseNeeded) {
+                mGattServer.sendResponse(regReq.device, regReq.requestId, BluetoothGatt.GATT_SUCCESS, 0, null);
+            }
+        } else {
+            Log.w(INFO_TAG, "Unknown descriptor write request");
+            if (regReq.responseNeeded) {
+                mGattServer.sendResponse(regReq.device, regReq.requestId, BluetoothGatt.GATT_FAILURE, 0, null);
+            }
+        }
+    }
 
     private BluetoothGattService createService() {
         //give our service it's UUID and set it to be primary
@@ -148,76 +462,6 @@ public class BleWriter extends LayerBase
         service.addCharacteristic(pullMsg);
 
         return service;
-    }
-
-    public BleWriter(Context context, Activity activity){
-        this.context = context.getApplicationContext();
-        this.activity = activity.getParent();
-        this.originalName = activity.getSharedPreferences(BuildConfig.APPLICATION_ID, Context.MODE_PRIVATE).getString("originalName", "");
-
-        // Use this to check if BLE is supported on the device.
-        if (!activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Log.e(ERR_TAG, "BLE not supported!");
-            activity.finish();
-        }
-        // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
-        // BluetoothAdapter through BluetoothManager.
-        final BluetoothManager mBluetoothManager =
-                (BluetoothManager) activity.getSystemService(context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = mBluetoothManager.getAdapter();
-        // Checks if Bluetooth is supported on the device.
-        if (mBluetoothAdapter == null) {
-            //Toast.makeText(this, "Bluetooth not supported", Toast.LENGTH_SHORT).show();
-            Log.e(ERR_TAG, "Bluetooth not supported!");
-            activity.finish();
-            return;
-        }
-        // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
-        // fire an intent to display a dialog asking the user to grant permission to enable it.
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            activity.startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-
-        startLeAdvertising();
-
-        //create the gatt server
-        mGattServer = mBluetoothManager.openGattServer(context,mGattServerCallback);
-
-        //add the service to the gatt server
-        mGattServer.addService(createService());
-
-        //create the runnable that will pull messages off of the outgoing message
-        //queue and notify the 1-hop neighbors
-        mRunnable = new Runnable() {
-            @Override
-            public void run() {
-
-                //if we haven't ever set lastRead or if our elapsed time since the last
-                //time we read is greater than the timeout threshold, go ahead a grab
-                //a new message to send
-                if (mLastRead == null
-                        || mReadTimeout < (System.currentTimeMillis() - mLastRead.getTime())) {
-                    AdvertisementPayload toSend = mOutQ.poll();
-
-                    if (null != toSend) {
-                        byte[] header = toSend.getHeader();
-                        mCurrentMsg = toSend.getMsg();
-                        int type = toSend.getMsgType();
-
-                        //Now write to my characteristic
-                        //iterate over list of devices and notify
-                        byte[] nextHopNeighbor = toSend.getOneHopNeighbor();
-                        if (null != nextHopNeighbor) {
-                            //only notify specified neighbor
-                        } else {
-                            notifyRegisteredDevices(type, header);
-                        }
-                    }
-                }
-                mHandler.postDelayed(this, 30);
-            }
-        };
     }
 
     /**** **** BLE ADVERTISE **** ****/
@@ -310,13 +554,14 @@ public class BleWriter extends LayerBase
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
             super.onConnectionStateChange(device, status, newState);
             if (status == BluetoothGatt.GATT_SUCCESS){
-                if (newState == BluetoothGatt.STATE_CONNECTED){
-                    //mDevice = device;
-                    Log.i(INFO_TAG,"Gatt Server connected to " + device.getAddress());
-                }
-                else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
-                    Log.i(INFO_TAG, String.format("Gatt Server disconnected from %s: status: %d", device.getAddress(), status));
-                    mRegisteredDevices.remove(device);
+                switch (newState) {
+                    case BluetoothGatt.STATE_CONNECTED:
+                        bleHandler.obtainMessage(MSG_CONNECTED, device).sendToTarget();
+                        break;
+
+                    case BluetoothGatt.STATE_DISCONNECTED:
+                        bleHandler.obtainMessage(MSG_DISCONNECTED, device).sendToTarget();
+                        break;
                 }
             }
         }
@@ -328,77 +573,24 @@ public class BleWriter extends LayerBase
         public void onCharacteristicReadRequest(BluetoothDevice device,
                                                 int requestId, int offset, BluetoothGattCharacteristic characteristic) {
             
-             mLastRead = new Timestamp(System.currentTimeMillis());
-
-             //https://stackoverflow.com/questions/29512305/android-ble-peripheral-oncharacteristicread-return-wrong-value-or-part-of-it
-            if (offset > mCurrentMsg.length) {
-                Log.i("BlueNet", "sending read response end");
-                mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[]{0});
-                return;
-            }
-
-    
-               
-            int size = mCurrentMsg.length - offset;
-            byte[] response = new byte[size];
-
-            for (int i = offset; i < mCurrentMsg.length; i++) {
-                response[i - offset] = mCurrentMsg[i];
-            }
-                    
-            if (PULL_MESSAGE_CHAR_UUID.equals(characteristic.getUuid())) {
-                Log.i("BlueNet", String.format("sending read response of length %d of payload of length %d", size, mCurrentMsg.length));
-                mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, response);
-                return;
-            }
-
-            mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null);
-            
+             ReadRequest readReq = new ReadRequest(device, requestId, offset, characteristic);
+             bleHandler.obtainMessage(MSG_READ, readReq).sendToTarget();       
         }
 
         //clients will try to write to the descriptor to enable notifications.
         //this doesn't need to be done per characteristic
         @Override
         public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
-            if (CLIENT_CHAR_CONFI_UUID.equals(descriptor.getUuid())) {
-                if (Arrays.equals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE, value)) {
-                    Log.i(INFO_TAG, "Subscribe device to notifications: " + device.getAddress());
-                    mRegisteredDevices.add(device);
-                } else if (Arrays.equals(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE, value)) {
-                    Log.i(INFO_TAG, "Unsubscribe device from notifications: " + device.getAddress());
-                    mRegisteredDevices.remove(device);
-                }
-
-                if (responseNeeded) {
-                    mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null);
-                }
-            } else {
-                Log.w(INFO_TAG, "Unknown descriptor write request");
-                if (responseNeeded) {
-                    mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null);
-                }
-            }
+            RegRequest regReq = new RegRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
+            bleHandler.obtainMessage(MSG_REGISTER, regReq).sendToTarget();
         }
 
-        @Override
-        public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
-            if (CLIENT_CHAR_CONFI_UUID.equals(descriptor.getUuid())) {
-                Log.i("BlueNet", "Config descriptor read request");
-                byte[] returnValue;
-                if (mRegisteredDevices.contains(device)) {
-                    returnValue = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
-                } else {
-                    returnValue = BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE;
-                }
-                mGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, returnValue);
-            }
-        }
 
         @Override
         public void onNotificationSent (BluetoothDevice device, int status) {
             super.onNotificationSent(device, status);
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.i("BlueNet", "Notification sent!");
+                bleHandler.obtainMessage(MSG_NOTIFIED, device).sendToTarget();
             }
             else {
                 Log.i("BlueNet", String.format("Failure: %d", status));
@@ -428,32 +620,7 @@ public class BleWriter extends LayerBase
    
     //Notify the device
     private void notifyRegisteredDevices(int msgType, byte [] data) {
-        //convert the msg type int into a UUID
-        UUID charUUID = getUUID(msgType);
-
         
-        if (null != charUUID) {
-            // notify every registered device of the characteristic change
-            for (BluetoothDevice device : mRegisteredDevices) {
-                //get the characteristic
-                BluetoothGattCharacteristic characteristic = mGattServer
-                    .getService(BLUENET_SERVICE_UUID)
-                    .getCharacteristic(charUUID);
-
-                //set the value of the characteristic
-                characteristic.setValue(data);
-                Log.i("BlueNet", "notifying " + device.getAddress());
-                try {
-                    boolean res = mGattServer.notifyCharacteristicChanged(device, characteristic, false);
-
-                    if (!res) {
-                        Log.e("BlueNet", "Notification unsuccessful!");
-                    }
-                } catch (NullPointerException x) {
-                    Log.e("BlueNet", "A device disconnected unexpectedly");
-                }
-            }
-        }
     }
 
     /**** **** End of Gatt Server **** ****/
