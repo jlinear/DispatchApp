@@ -27,6 +27,8 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 
 import nd.edu.bluenet_stack.Result;
 
@@ -62,7 +64,7 @@ public class contactFragment extends Fragment {
     private ListView mListPeople, mListGroup;
 
     private String [] data1 ={"Hiren", "Pratik", "Dhruv", "Narendra", "Piyush", "Priyank"};
-    private String [] data2 ={"Kirit", "Miral", "Bhushan", "Jiten", "Ajay", "Kamlesh"};
+    private String [] data2 ={"TestGroup1", "TestGroup2", "TestGroup3"};
 
     public contactFragment(){
 
@@ -108,10 +110,13 @@ public class contactFragment extends Fragment {
         mListPeople = view.findViewById(R.id.list_people);
         mListGroup = view.findViewById(R.id.list_group);
 
-       final String [] uids = mBluenet.getNeighbors();
+        final String [] uids = mBluenet.getNeighbors();
+        List<String> uidList = Arrays.asList(uids);
+        final ListAdapter PeopleListAdapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, uidList);
+        ListAdapter GroupListAdapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, data2);
 
-        mListPeople.setAdapter(new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, uids));
-        mListGroup.setAdapter(new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, data2));
+        mListPeople.setAdapter(PeopleListAdapter);
+        mListGroup.setAdapter(GroupListAdapter);
 
         mListPeople.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -181,6 +186,9 @@ public class contactFragment extends Fragment {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
                                 //TODO: pass the userID to bluenet for ID search
+                                String new_id = editText.getText().toString();
+//                                uidList.add(new_id);
+//                                PeopleListAdapter.notify();
                             }
                         })
                         .setNegativeButton("Cancel",null)

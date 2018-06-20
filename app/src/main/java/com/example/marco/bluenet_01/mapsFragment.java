@@ -56,6 +56,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
+import nd.edu.bluenet_stack.Group;
 import nd.edu.bluenet_stack.Result;
 
 
@@ -140,9 +141,10 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
             @Override
             public void onClick(View view) {
                 String out_msg = edittext.getText().toString();
-                for(int i = 0; i< mBluenet.getNeighbors().length; i++){
-                    mBluenet.write(mBluenet.getNeighbors()[i], out_msg);
-                }
+                mBluenet.write(Group.BROADCAST_GROUP, out_msg);
+//                for(int i = 0; i< mBluenet.getNeighbors().length; i++){
+//                    mBluenet.write(mBluenet.getNeighbors()[i], out_msg);
+//                }
                 showToast("Your msg has been broadcast!");
                 edittext.setText("");
             }
