@@ -52,6 +52,8 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.EmptyStackException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
@@ -92,7 +94,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
 
     Button SendButton;
     BlueNet mBluenet;
-    Set<String> neighbor_ids;
+    HashMap<String, Float> neighbor_ids;
 
 
 
@@ -121,8 +123,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        mBluenet = new BlueNet(getContext(), getActivity());
-        neighbor_ids = new HashSet<String>();
+        neighbor_ids = new HashMap<String, Float>();
         EventBus.getDefault().register(this);
         mBluenet = EventBus.getDefault().getStickyEvent(BlueNet.class);
         if (getArguments() != null) {
@@ -159,7 +160,13 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         mBluenet.regCallback(new Result() {
             @Override
             public int provide(String src, byte[] data) {
-                final String rec_msg = new String(data, StandardCharsets.UTF_8);
+                final String rec_msg;
+                if (data != null){
+                    rec_msg = new String(data, StandardCharsets.UTF_8);
+                }else{
+                    throw new EmptyStackException();
+                }
+
 //                showToast(src + ": " + rec_msg);
                 final String src_id = src;
 //                EventBus.getDefault().post(mBluenet);
@@ -274,39 +281,40 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                 if (0 < nids.length) {
                     Log.d("MapsLog", "length of nids " + nids.length +
                             " 1st neighbor id: "+nids[0] + " myID: " +mBluenet.getMyID());
-                    Log.d("LocLog", "lat: " + mBluenet.getLocation(nids[0]).mLatitude +
-                            " lng: " + mBluenet.getLocation(nids[0]).mLongitude);
+//                    Log.d("LocLog", "lat: " + mBluenet.getLocation(nids[0]).mLatitude +" lng: " + mBluenet.getLocation(nids[0]).mLongitude);
+                    for (int i = 0; i< nids.length; i++) {
+                        float lat = mBluenet.getLocation(nids[i]).mLatitude;
+                        float lng = mBluenet.getLocation(nids[i]).mLongitude;
+                        if (!neighbor_ids.containsKey(nids[i])) {
+                            Random ran = new Random();
+                            float marker_color = 330 * ran.nextFloat();
+                            neighbor_ids.put(nids[i],marker_color);
+                            mMap.addMarker(new MarkerOptions()
+                                    .position(new LatLng(lat, lng))
+                                    .title(nids[i])
+                                    .icon(BitmapDescriptorFactory.defaultMarker(marker_color))
+                            );
+                        }else{
+                            mMap.clear();
+                            mMap.addMarker(new MarkerOptions()
+                                    .position(new LatLng(lat, lng))
+                                    .title(nids[i])
+                                    .icon(BitmapDescriptorFactory.defaultMarker(neighbor_ids.get(nids[i])))
+                            );
+                        }
+                    }
                 }else{
                     showToast("Searching for neighbors, please wait...");
+//                    try{
+//                        mFusedLocationProviderClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
+//                        mMap.setMyLocationEnabled(true);
+//                    }catch (SecurityException e){
+//                        e.printStackTrace();
+//                        showToast("mFusedLocationProviderClient failed");
+//                    }
                 }
 
 //                mMap.clear();
-                if (0 < nids.length){
-                for (int i = 0; i< nids.length; i++){
-                    if(!neighbor_ids.contains(nids[i])){
-                        neighbor_ids.add(nids[i]);
-                        float lat = mBluenet.getLocation(nids[i]).mLatitude;
-                        float lng = mBluenet.getLocation(nids[i]).mLongitude;
-                        Random ran = new Random();
-                        float marker_color = 330 * ran.nextFloat();
-                        mMap.addMarker(new MarkerOptions()
-                                .position(new LatLng(lat,lng))
-                                .title(nids[i])
-                                .icon(BitmapDescriptorFactory.defaultMarker(marker_color))
-                        );
-                    }
-
-//                    neighbor_ids.add(nids[i]);
-//                    float lat = mBluenet.getLocation(nids[0]).mLatitude;
-//                    float lng = mBluenet.getLocation(nids[0]).mLongitude;
-//                    Random ran = new Random();
-//                    float marker_color = 330 * ran.nextFloat();
-//                    mMap.addMarker(new MarkerOptions()
-//                            .position(new LatLng(lat,lng))
-//                            .title(nids[i])
-//                            .icon(BitmapDescriptorFactory.defaultMarker(marker_color))
-//                    );
-                }}
 
                 // makes sure location is updated in the beginning
                 if(!locationFound){
@@ -318,7 +326,6 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
 //                    );
                     updateLocation(lastLocation);
                     locationFound = true;
-
                 }
 
                 // makes sure location is updated in the beginning
@@ -343,9 +350,9 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         mMap = googleMap;
 
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(5000); // 5 second interval
-        mLocationRequest.setFastestInterval(5000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_LOW_POWER);
+        mLocationRequest.setInterval(500); // mini second interval
+        mLocationRequest.setFastestInterval(500);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         try{
             mFusedLocationProviderClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
