@@ -35,6 +35,8 @@ import android.support.annotation.MainThread;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -120,6 +122,7 @@ public class BleReader extends LayerBase
     private Map<String, Boolean> mActiveDevices = new HashMap<String, Boolean>();
 
     private Map<String, Integer> mServiceSetupTables = new HashMap<String, Integer>();
+    private Map<String, Integer> mConnectionAttempts = new HashMap<String, Integer>();
 
     private Map<String, BlockingQueue<byte []>> mPendingMessage = new HashMap<String, BlockingQueue<byte []>>();
 
@@ -137,8 +140,7 @@ public class BleReader extends LayerBase
 
     private Handler mainHandler = new Handler(Looper.getMainLooper(), this);
     private Handler bleHandler;
-    private Context context;
-    private MyBleCallback myBleCallback = new MyBleCallback();
+    //private BleCallback myBleCallback = new BleCallback();
     private Set<BleCallback> listeners = new HashSet<>();
 
     public interface BleCallback {
@@ -155,11 +157,11 @@ public class BleReader extends LayerBase
         void onDeviceDisconnected();
     }
 
-    public class ReadResult {
+    public class ReadOp {
         public BluetoothGatt gatt;
         public BluetoothGattCharacteristic characteristic;
 
-        public ReadResult(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+        public ReadOp(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             this.gatt = gatt;
             this.characteristic = characteristic;
         }
@@ -224,6 +226,11 @@ public class BleReader extends LayerBase
         // BluetoothAdapter through BluetoothManager.
         mBluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = mBluetoothManager.getAdapter();
+
+        HandlerThread handlerThread = new HandlerThread("BleThread");
+        handlerThread.start();
+        bleHandler = new Handler(handlerThread.getLooper(), this);
+
         // Checks if Bluetooth is supported on the device.
         if (mBluetoothAdapter == null) {
             //Toast.makeText(this, "Bluetooth not supported", Toast.LENGTH_SHORT).show();
@@ -256,9 +263,8 @@ public class BleReader extends LayerBase
                         }
                         else {
                             Log.i("BlueNet", "Device " + entry.getKey() + " inactive. Disconnecting...");
-                            // BluetoothGatt gatt = mConnectedDeviceMap.get(entry.getKey());
-                            // gatt.disconnect();
-                            // mActiveDevices.remove(entry.getKey());
+                            BluetoothGatt gatt = mConnectedDeviceMap.get(entry.getKey());
+                            bleHandler.obtainMessage(MSG_DISCONNECT, gatt).sendToTarget();
                         }
                     }
 
@@ -284,13 +290,8 @@ public class BleReader extends LayerBase
         listeners.remove(bleCallback);
     }
 
-    //Not sure if these will be useful ***********
-    private void connect(BluetoothDevice autoConnect) {
-       
-    }
-
     private void disconnect(BluetoothDevice device) {
-        bleHandler.obtainMessage(MSG_DISCONNECT, device).sendToTarget();
+        
     }
     //********************************************
    
@@ -298,28 +299,42 @@ public class BleReader extends LayerBase
     public boolean handleMessage(Message message) {
       switch (message.what) {
         case MSG_CONNECT:
-            doConnect((ScanResult)message.obj);
+            doConnect((BluetoothDevice)message.obj);
             break;
         case MSG_CONNECTED:
             doConnected((BluetoothGatt)message.obj);
             break;
         case MSG_DISCONNECT:
-          
+            
           break;
         case MSG_DISCONNECTED:
             doDisconnected((BluetoothGatt)message.obj);
+            BluetoothDevice device = ((BluetoothGatt)message.obj).getDevice();
+            String deviceAddr = device.getAddress();
+            if (mConnectionAttempts.containsKey(deviceAddr)) {
+                mConnectionAttempts.put(deviceAddr, mConnectionAttempts.get(deviceAddr) - 1);
+            }
+            else
+            {
+                mConnectionAttempts.put(deviceAddr, 3);
+            }
+
+            if (0 < mConnectionAttempts.get(deviceAddr)) {
+                Log.i("BlueNet", "Attempting to reconnect...");
+                doConnect(device);
+            }
             break;
         case MSG_SERVICES_DISCOVERED:
             doServicesDiscovered((BluetoothGatt)message.obj);
             break;
         case MSG_NOTIFIED:
-            doNotified((ReadResult)message.obj);
+            doNotified((ReadOp)message.obj);
             break;
         case MSG_READ:
-            doRead((ReadResult)message.obj);
+            doRead((ReadOp)message.obj);
             break;
         case MSG_READ_REQ:
-            
+            doReadRequest((ReadOp)message.obj);
             break;
         case MSG_REGISTER:
             doRegister((BluetoothGatt)message.obj);
@@ -332,8 +347,7 @@ public class BleReader extends LayerBase
     }
 
     @MainThread
-     private void doConnect(ScanResult result){
-        BluetoothDevice device = result.getDevice();
+     private void doConnect(BluetoothDevice device){
         String deviceAddr = device.getAddress();
 
         //get the remote device
@@ -348,6 +362,7 @@ public class BleReader extends LayerBase
             if (mConnectedDeviceMap.containsKey(deviceAddr)) {
                 mConnectedDeviceMap.remove(deviceAddr);
             }
+
             //if we have not tried to connect to this device before marker that
             //we are not currently handling a pending connection operation
             if (null == mPendingConnect.get(deviceAddr)) {
@@ -358,15 +373,18 @@ public class BleReader extends LayerBase
             //connect to the Gatt server
             if (false == mPendingConnect.get(deviceAddr)) {              
                 // connect your device
-                 Log.i("BlueNet", "trying to connect!");
+                Log.i("BlueNet", "trying to connect!");
                 mPendingConnect.put(deviceAddr, true);
                 remoteDevice.connectGatt(this.context, false, mGattCallback, BluetoothDevice.TRANSPORT_LE);
             }
         }else if( connectionState == BluetoothProfile.STATE_CONNECTED ){
             // already connected . send Broadcast if needed
         }
-        
+    }
 
+    @MainThread
+    private void doDisconnect(BluetoothGatt gatt) {
+        gatt.disconnect();
     }
 
     @MainThread
@@ -403,6 +421,7 @@ public class BleReader extends LayerBase
                 bluetoothGatt = null;
             }
             mConnectedDeviceMap.remove(address);
+            mActiveDevices.remove(address);
             mServiceSetupTables.remove(address);
         }
         
@@ -429,20 +448,20 @@ public class BleReader extends LayerBase
     }
 
     @MainThread
-    private void doNotified(ReadResult readRes) {
-        BluetoothDevice device = readRes.gatt.getDevice();
+    private void doNotified(ReadOp readOp) {
+        BluetoothDevice device = readOp.gatt.getDevice();
         final String address = device.getAddress();
         final BluetoothGatt bluetoothGatt = mConnectedDeviceMap.get(address);
         Log.i("BlueNet", "Characteristic change from: " + address);
         mActiveDevices.put(address, true); //we've seen something!
 
         AdvertisementPayload advPayload = new AdvertisementPayload();
-        byte[] data = readRes.characteristic.getValue();
+        byte[] data = readOp.characteristic.getValue();
 
         //if can successfully parsed the data then continue
         if (advPayload.fromBytes(data)) {
             //set msgType from the characteristic UUID
-            advPayload.setMsgType(getMsgType(characteristic.getUuid()));
+            advPayload.setMsgType(getMsgType(readOp.characteristic.getUuid()));
 
             //Get BT-BN addr
             if (advPayload.getTTL() == AdvertisementPayload.MAX_TTL) {
@@ -479,8 +498,8 @@ public class BleReader extends LayerBase
                             .getCharacteristic(PULL_MESSAGE_CHAR_UUID);
               
 
-                    //read the characteristic
-                    bluetoothGatt.readCharacteristic(characteristic);
+                    ReadOp readOp = new ReadOp(btGatt, characteristic);
+                    bleHandler.obtainMessage(MSG_READ_REQ, readOp).sendToTarget();
 
                     BlockingQueue<byte []> retQ = mPendingMessage.get(devAddr);
 
@@ -494,7 +513,6 @@ public class BleReader extends LayerBase
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
-                    
                    
                     return retMsg;
                 }
@@ -512,17 +530,22 @@ public class BleReader extends LayerBase
     }
 
     @MainThread
-    private void doRead(ReadResult readRes) {
-       BluetoothDevice device = readRes.gatt.getDevice();
+    private void doRead(ReadOp readOp) {
+       BluetoothDevice device = readOp.gatt.getDevice();
         String address = device.getAddress();
         BluetoothGatt bluetoothGatt = mConnectedDeviceMap.get(address);
         Log.i("BlueNet", "read complete!");
         BlockingQueue<byte[]> q = mPendingMessage.get(address);
         try {
-            q.put(readRes.characteristic.getValue());
+            q.put(readOp.characteristic.getValue());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    @MainThread
+    private void doReadRequest(ReadOp readOp) {
+        readOp.gatt.readCharacteristic(readOp.characteristic);
     }
 
     @MainThread
@@ -562,7 +585,9 @@ public class BleReader extends LayerBase
 
     @MainThread
     private void doRegistered(BluetoothGatt gatt){
-        //NOTHING!
+        //now that we have a connection result we can go ahead and
+        //set the pending connect value to false
+        mPendingConnect.put(gatt.getDevice().getAddress(), false);
     }
 
     /**** **** BLE SCAN **** ****/
@@ -601,14 +626,14 @@ public class BleReader extends LayerBase
         //callbackType could be one of
         // CALLBACK_TYPE_ALL_MATCHES, CALLBACK_TYPE_FIRST_MATCH or CALLBACK_TYPE_MATCH_LOST
         public void onScanResult(int callbackType, ScanResult result) {
-            bleHandler.obtainMessage(MSG_CONNECT, result).sendToTarget();
+            bleHandler.obtainMessage(MSG_CONNECT, result.getDevice()).sendToTarget();
         }
 
         @Override
         public void onBatchScanResults(List<ScanResult> results) {
             Log.i(INFO_TAG, "onBatchScanResults: " + results.size() + " results");
             for (ScanResult result : results) {
-                bleHandler.obtainMessage(MSG_CONNECT, result).sendToTarget();
+                bleHandler.obtainMessage(MSG_CONNECT, result.getDevice()).sendToTarget();
             }
         }
 
@@ -624,9 +649,6 @@ public class BleReader extends LayerBase
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            //now that we have a connection result we can go ahead and
-            //set the pending connect value to false
-            mPendingConnect.put(address, false);
 
             if (BluetoothGatt.GATT_SUCCESS == status) {
                 switch(newState) {
@@ -641,6 +663,7 @@ public class BleReader extends LayerBase
             }
             else {
                 Log.e("BlueNet", String.format("Error in onConnectionStatechange -- status: %d, state: %d", status, newState));
+                bleHandler.obtainMessage(MSG_DISCONNECTED, gatt).sendToTarget();
             }
         }
 
@@ -651,6 +674,7 @@ public class BleReader extends LayerBase
                 bleHandler.obtainMessage(MSG_SERVICES_DISCOVERED, gatt).sendToTarget();  
             } else {
                 Log.e(ERR_TAG, "onServicesDiscovered received: " + status);
+                bleHandler.obtainMessage(MSG_DISCONNECT, gatt).sendToTarget();
             }
         }
 
@@ -669,11 +693,12 @@ public class BleReader extends LayerBase
                                          BluetoothGattCharacteristic characteristic,
                                          int status) {
             if (status == GATT_SUCCESS) {
-                ReadResult readRes = new ReadRes(gatt, characteristic);
-                bleHandler.obtainMessage(MSG_READ, readRes).sendToTarget(); 
+                ReadOp readOp = new ReadOp(gatt, characteristic);
+                bleHandler.obtainMessage(MSG_READ, readOp).sendToTarget(); 
             }
             else{
                 Log.e("BlueNet", "Read failed!");
+                bleHandler.obtainMessage(MSG_DISCONNECT, gatt).sendToTarget();
             }
         }
 
@@ -684,7 +709,8 @@ public class BleReader extends LayerBase
                                             BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
             
-            
+            ReadOp readOp = new ReadOp(gatt, characteristic);
+            bleHandler.obtainMessage(MSG_NOTIFIED, readOp).sendToTarget();
 
         }
     };

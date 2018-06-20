@@ -132,8 +132,7 @@ public class BleWriter extends LayerBase
 
     private Handler mainHandler = new Handler(Looper.getMainLooper(), this);
     private Handler bleHandler;
-    private Context context;
-    private MyBleCallback myBleCallback = new MyBleCallback();
+    //private BleCallback myBleCallback = new BleCallback();
 
     private Set<BleCallback> listeners = new HashSet<>();
 
@@ -227,6 +226,10 @@ public class BleWriter extends LayerBase
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             activity.startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
+
+        HandlerThread handlerThread = new HandlerThread("BleThread");
+        handlerThread.start();
+        bleHandler = new Handler(handlerThread.getLooper(), this);
 
         //create the gatt server
         mGattServer = mBluetoothManager.openGattServer(context,mGattServerCallback);
@@ -326,7 +329,7 @@ public class BleWriter extends LayerBase
 
     @MainThread
     private void doDisconnected(BluetoothDevice device) {
-        Log.i(INFO_TAG, String.format("Gatt Server disconnected from %s: status: %d", device.getAddress(), status));
+        Log.i(INFO_TAG, String.format("Gatt Server disconnected from %s", device.getAddress()));
         mRegisteredDevices.remove(device);
     }
 
@@ -340,7 +343,7 @@ public class BleWriter extends LayerBase
     @MainThread
     private void doNotifyRegisteredDevice(NotifyRequest notifyReq) {
         //convert the msg type int into a UUID
-        UUID charUUID = getUUID(notifyReq.msgType);
+        UUID charUUID = getUUID(notifyReq.type);
         
         if (null != charUUID) {
             if (null == notifyReq.recipient) { //if null then send to all registered
@@ -352,7 +355,7 @@ public class BleWriter extends LayerBase
                         .getCharacteristic(charUUID);
 
                     //set the value of the characteristic
-                    characteristic.setValue(data);
+                    characteristic.setValue(notifyReq.header);
                     Log.i("BlueNet", "notifying " + device.getAddress());
                     try {
                         boolean res = mGattServer.notifyCharacteristicChanged(device, characteristic, false);
@@ -391,7 +394,7 @@ public class BleWriter extends LayerBase
         byte[] response = new byte[size];
 
         for (int i = readReq.offset; i < mCurrentMsg.length; i++) {
-            response[i - offset] = mCurrentMsg[i];
+            response[i - readReq.offset] = mCurrentMsg[i];
         }
                 
         if (PULL_MESSAGE_CHAR_UUID.equals(readReq.characteristic.getUuid())) {
@@ -579,7 +582,7 @@ public class BleWriter extends LayerBase
         @Override
         public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
             RegRequest regReq = new RegRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
-            bleHandler.obtainMessage(MSG_READ, regReq).sendToTarget();
+            bleHandler.obtainMessage(MSG_REGISTER, regReq).sendToTarget();
         }
 
 
