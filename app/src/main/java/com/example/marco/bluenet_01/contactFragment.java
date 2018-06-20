@@ -6,8 +6,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,6 +21,14 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.example.marco.bluenet_01.BLE_Comm.BlueNet;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+
+import java.nio.charset.StandardCharsets;
+
+import nd.edu.bluenet_stack.Result;
 
 
 /**
@@ -46,6 +56,7 @@ public class contactFragment extends Fragment {
     private OnFragmentInteractionListener mListener;
     TextView headerText;
     String headerTextString;
+    BlueNet mBluenet;
 
     /**** DEBUG use ****/
     private ListView mListPeople, mListGroup;
@@ -81,8 +92,9 @@ public class contactFragment extends Fragment {
         if (getArguments() != null) {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
-
         }
+        EventBus.getDefault().register(this);
+        mBluenet = EventBus.getDefault().getStickyEvent(BlueNet.class);
 
     }
 
@@ -96,14 +108,16 @@ public class contactFragment extends Fragment {
         mListPeople = view.findViewById(R.id.list_people);
         mListGroup = view.findViewById(R.id.list_group);
 
-        mListPeople.setAdapter(new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, data1));
+       final String [] uids = mBluenet.getNeighbors();
+
+        mListPeople.setAdapter(new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, uids));
         mListGroup.setAdapter(new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, data2));
 
         mListPeople.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 //TODO: get the Bluenet ID and pass to chat fragment
-                String id = data1[i];
+                String id = uids[i];
                 Fragment fg= new chatFragment();
                 Bundle bundle = new Bundle();
                 bundle.putString("chattingName", id);
@@ -194,6 +208,43 @@ public class contactFragment extends Fragment {
         });
 
 
+        mBluenet.regCallback(new Result() {
+            @Override
+            public int provide(String src, byte[] data) {
+                final String rec_msg = new String(data, StandardCharsets.UTF_8);
+//                showToast(src + ": " + rec_msg);
+                final String src_id = src;
+//                EventBus.getDefault().post(mBluenet);
+
+                new AlertDialog.Builder(getContext())
+                        .setTitle("New Message Received!")
+                        .setMessage("You have a new message from: "+src)
+                        .setPositiveButton("Read", new DialogInterface.OnClickListener(){
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i){
+                                chatFragment frag = new chatFragment();
+                                Bundle bundle = new Bundle();
+                                bundle.putString("chattingName", src_id);
+                                bundle.putString("FirstMsg",rec_msg);
+                                bundle.putLong("FirstMsgTime",System.currentTimeMillis());
+                                frag.setArguments(bundle);
+
+                                //NOTE: Fragment changing code
+                                FragmentTransaction ft = getActivity().getSupportFragmentManager().beginTransaction();
+                                ft.replace(R.id.mainFrame, frag);
+                                NavigationView navigationView = (NavigationView) getActivity().findViewById(R.id.nav_view);
+                                navigationView.setCheckedItem(R.id.nav_chat);
+                                ft.commit();
+                            }
+                        })
+                        .setNegativeButton("Discard", null)
+                        .show();
+
+                return 0;
+            }
+        });
+
+
         // NOTE : We are calling the onFragmentInteraction() declared in the MainActivity
         // ie we are sending "Fragment 1" as title parameter when fragment1 is activated
         if (mListener != null) {
@@ -214,6 +265,11 @@ public class contactFragment extends Fragment {
         }
     }*/
 
+    @Subscribe
+    public void RecBluenet(BlueNet mbluenet){
+        Log.d("Contact","num of neighbors "+mbluenet.getNeighbors().length);
+    }
+
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -229,6 +285,7 @@ public class contactFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+        EventBus.getDefault().unregister(this);
     }
 
 

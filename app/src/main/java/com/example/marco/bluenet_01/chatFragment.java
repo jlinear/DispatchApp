@@ -123,8 +123,7 @@ public class chatFragment extends Fragment {
         });
 
         // this is how you add messages to the screen
-        chatView.addMessage(new ChatMessage("test static default message",
-                                    System.currentTimeMillis(), ChatMessage.Type.RECEIVED));
+//        chatView.addMessage(new ChatMessage("test static default message",System.currentTimeMillis(), ChatMessage.Type.RECEIVED));
         if (firstMsg != null && firstMsgTime != 0) {
             chatView.addMessage(new ChatMessage(firstMsg, firstMsgTime, ChatMessage.Type.RECEIVED));
         }

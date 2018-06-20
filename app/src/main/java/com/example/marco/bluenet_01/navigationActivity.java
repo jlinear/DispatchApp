@@ -103,15 +103,10 @@ public class navigationActivity extends AppCompatActivity
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         myID = PreferenceManager.getDefaultSharedPreferences(this).getString("userName", "");
 
-//        EventBus.getDefault().register(this);
-
         mBluenet = new BlueNet(this, this);
+        //About EventBus: http://greenrobot.org/eventbus/documentation/how-to-get-started/
+        //EventBus Sticky Event: http://greenrobot.org/eventbus/documentation/configuration/sticky-events/
         EventBus.getDefault().postSticky(mBluenet);
-
-//        myNeighbors = mBluenet.getNeighbors();
-//        for(int i = 0; i < myNeighbors.length; i ++){
-//            myNeighborsLoc[i] = mBluenet.getLocation(myNeighbors[i]);
-//        }
 
         //NOTE:  Open fragment1 initially.
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
@@ -120,12 +115,6 @@ public class navigationActivity extends AppCompatActivity
 
     }
 
-
-//    @Subscribe(threadMode = ThreadMode.MAIN)
-//    public void onBlueNetRec(BlueNet xBluenet){
-//        showToast("New MSG RECEIVED!" + xBluenet.getNeighbors().length);
-//
-//    }
 
     @Override
     public void onBackPressed() {

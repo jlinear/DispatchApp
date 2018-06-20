@@ -152,7 +152,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
             @Override
             public int provide(String src, byte[] data) {
                 final String rec_msg = new String(data, StandardCharsets.UTF_8);
-                showToast(src + ": " + rec_msg);
+//                showToast(src + ": " + rec_msg);
                 final String src_id = src;
 //                EventBus.getDefault().post(mBluenet);
 
@@ -277,8 +277,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                 for (int i = 0; i< nids.length; i++){
                     if(!neighbor_ids.contains(nids[i])){
                         neighbor_ids.add(nids[i]);
-                        float lat = mBluenet.getLocation(nids[0]).mLatitude;
-                        float lng = mBluenet.getLocation(nids[0]).mLongitude;
+                        float lat = mBluenet.getLocation(nids[i]).mLatitude;
+                        float lng = mBluenet.getLocation(nids[i]).mLongitude;
                         Random ran = new Random();
                         float marker_color = 330 * ran.nextFloat();
                         mMap.addMarker(new MarkerOptions()
