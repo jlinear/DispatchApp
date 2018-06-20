@@ -108,7 +108,7 @@ public class BleWriter extends LayerBase
 
     //for configuring notifications
     private static final UUID CLIENT_CHAR_CONFI_UUID = UUID.
-            fromString("00002a08-0000-1000-8000-00805f9b34fb");
+            fromString("b620c8d5-7942-45c8-8f69-2ea5bb275603");//00002a08-0000-1000-8000-00805f9b34fb");
 
 
 

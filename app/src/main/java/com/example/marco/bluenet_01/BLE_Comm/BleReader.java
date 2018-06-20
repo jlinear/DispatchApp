@@ -104,7 +104,7 @@ public class BleReader extends LayerBase
 
     //for configuring notifications
     private static final UUID CLIENT_CHAR_CONFI_UUID = UUID.
-            fromString("00002a08-0000-1000-8000-00805f9b34fb");
+            fromString("b620c8d5-7942-45c8-8f69-2ea5bb275603");//00002a08-0000-1000-8000-00805f9b34fb");
 
     public Context context;
     public Activity activity;
@@ -489,29 +489,36 @@ public class BleReader extends LayerBase
                         }
                     }
 
-                    final BluetoothGatt btGatt = mConnectedDeviceMap.get(devAddr);
+                    
                     Log.i("BlueNet", "MessageRetriever starting read request");
                    
-                    //grab the characteristic
-                    BluetoothGattCharacteristic characteristic = btGatt
-                            .getService(BLUENET_SERVICE_UUID)
-                            .getCharacteristic(PULL_MESSAGE_CHAR_UUID);
-              
-
-                    ReadOp readOp = new ReadOp(btGatt, characteristic);
-                    bleHandler.obtainMessage(MSG_READ_REQ, readOp).sendToTarget();
-
-                    BlockingQueue<byte []> retQ = mPendingMessage.get(devAddr);
-
-                    if (null == retQ) {
-                        Log.e("BlueNet", "Pending message queue is null.");
-                    }
-
+                    final BluetoothGatt btGatt = mConnectedDeviceMap.get(devAddr);
                     byte [] retMsg = new byte [0];
-                    try {
-                        retMsg = retQ.take();
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
+                    if (null == btGatt) {
+                        Log.e("BlueNet", "No connection! Cannot complete read operation!");
+                    }
+                    else {
+                        //grab the characteristic
+                        BluetoothGattCharacteristic characteristic = btGatt
+                                .getService(BLUENET_SERVICE_UUID)
+                                .getCharacteristic(PULL_MESSAGE_CHAR_UUID);
+                  
+
+                        ReadOp readOp = new ReadOp(btGatt, characteristic);
+                        bleHandler.obtainMessage(MSG_READ_REQ, readOp).sendToTarget();
+
+                        BlockingQueue<byte []> retQ = mPendingMessage.get(devAddr);
+
+                        if (null == retQ) {
+                            Log.e("BlueNet", "Pending message queue is null.");
+                        }
+
+                        
+                        try {
+                            retMsg = retQ.take();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
                     }
                    
                     return retMsg;
