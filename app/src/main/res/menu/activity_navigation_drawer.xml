@@ -38,15 +38,5 @@
         </menu>
     </item>
 
-    <item
-        android:id="@+id/discoverableSwitch"
-        app:actionLayout="@layout/nav_drawer_switch"
-        android:title="" />
-
-    <item
-        android:id="@+id/emergencyButton"
-        app:actionLayout="@layout/nav_drawer_emergency"
-        android:title=""
-    />
 
 </menu>

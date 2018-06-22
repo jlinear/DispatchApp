@@ -64,7 +64,7 @@ public class contactFragment extends Fragment {
     private ListView mListPeople, mListGroup;
 
     private String [] data1 ={"Hiren", "Pratik", "Dhruv", "Narendra", "Piyush", "Priyank"};
-    private String [] data2 ={"TestGroup1", "TestGroup2", "TestGroup3"};
+//    private String [] data2 ={"TestGroup1", "TestGroup2", "TestGroup3"};
 
     public contactFragment(){
 
@@ -113,7 +113,7 @@ public class contactFragment extends Fragment {
         final String [] uids = mBluenet.getNeighbors();
         List<String> uidList = Arrays.asList(uids);
         final ListAdapter PeopleListAdapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, uidList);
-//        final String [] data2 = {mBluenet.getMyID(),"Test1", "Test2"};
+        final String [] data2 = {mBluenet.getMyID(),"Test1", "Test2"};
         ListAdapter GroupListAdapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, data2);
 
         mListPeople.setAdapter(PeopleListAdapter);
@@ -138,6 +138,12 @@ public class contactFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 //TODO: get group ID and pass to chat fragment
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Warning")
+                        .setMessage("This feature is not released yet.")
+                        .setPositiveButton("Ok", null)
+                        .show();
+
                 String id = data2[i];
                 Fragment fg= new chatFragment();
                 Bundle bundle = new Bundle();
@@ -188,6 +194,11 @@ public class contactFragment extends Fragment {
                             public void onClick(DialogInterface dialogInterface, int i) {
                                 //TODO: pass the userID to bluenet for ID search
                                 String new_id = editText.getText().toString();
+                                new AlertDialog.Builder(getContext())
+                                        .setTitle("Warning")
+                                        .setMessage("This feature is not released yet.")
+                                        .setPositiveButton("Ok", null)
+                                        .show();
 //                                uidList.add(new_id);
 //                                PeopleListAdapter.notify();
                             }
@@ -209,6 +220,11 @@ public class contactFragment extends Fragment {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
                                 //TODO: pass the group name to bluenet for group search
+                                new AlertDialog.Builder(getContext())
+                                        .setTitle("Warning")
+                                        .setMessage("This feature is not released yet.")
+                                        .setPositiveButton("Ok", null)
+                                        .show();
                             }
                         })
                         .setNegativeButton("Cancel",null)

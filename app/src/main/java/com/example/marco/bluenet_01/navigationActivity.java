@@ -150,8 +150,8 @@ public class navigationActivity extends AppCompatActivity
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.navigation, menu);
 
-        SwitchCompat discoverable = (SwitchCompat) findViewById(R.id.switcher);
-        discoverable.setOnCheckedChangeListener(this);
+//        SwitchCompat discoverable = (SwitchCompat) findViewById(R.id.switcher);
+//        discoverable.setOnCheckedChangeListener(this);
         return true;
     }
 
@@ -248,33 +248,33 @@ public class navigationActivity extends AppCompatActivity
     }
 
 
-    public void distressClick(View view) {
-        final EditText editText = new EditText(this);
-        new AlertDialog.Builder(this)
-                .setTitle("Send Distress Signal?")
-                .setMessage("Please enter your distress message: (20 bytes limit)")
-                .setView(editText)
-                .setPositiveButton("Send", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        // TODO: send the distress signal with BlueNet
-                        // use this to get text from prompt: editText.getText();
-//                        mBleBasic.startLeAdvertising(editText.getText().toString().getBytes(StandardCharsets.UTF_8));
-                        /**** Test large char read  ****/
-//                        mReader.readLargeChar();
-
-
-                        showToast("Distress signal sent!");
-                        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-                        drawer.closeDrawer(GravityCompat.START);
-                        // hide keyboard
-                        ((InputMethodManager) getSystemService(navigationActivity.INPUT_METHOD_SERVICE))
-                                .toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, 0);
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
+//    public void distressClick(View view) {
+//        final EditText editText = new EditText(this);
+//        new AlertDialog.Builder(this)
+//                .setTitle("Send Distress Signal?")
+//                .setMessage("Please enter your distress message: (20 bytes limit)")
+//                .setView(editText)
+//                .setPositiveButton("Send", new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialogInterface, int i) {
+//                        // TODO: send the distress signal with BlueNet
+//                        // use this to get text from prompt: editText.getText();
+////                        mBleBasic.startLeAdvertising(editText.getText().toString().getBytes(StandardCharsets.UTF_8));
+//                        /**** Test large char read  ****/
+////                        mReader.readLargeChar();
+//
+//
+//                        showToast("Distress signal sent!");
+//                        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+//                        drawer.closeDrawer(GravityCompat.START);
+//                        // hide keyboard
+//                        ((InputMethodManager) getSystemService(navigationActivity.INPUT_METHOD_SERVICE))
+//                                .toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, 0);
+//                    }
+//                })
+//                .setNegativeButton("Cancel", null)
+//                .show();
+//    }
 
 
 
