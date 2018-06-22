@@ -130,10 +130,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
-
-
     }
-
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -149,9 +146,6 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
             public void onClick(View view) {
                 String out_msg = edittext.getText().toString();
                 mBluenet.write(Group.BROADCAST_GROUP, out_msg);
-//                for(int i = 0; i< mBluenet.getNeighbors().length; i++){
-//                    mBluenet.write(mBluenet.getNeighbors()[i], out_msg);
-//                }
                 showToast("Your msg has been broadcast!");
                 edittext.setText("");
             }
@@ -166,10 +160,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
                 }else{
                     throw new EmptyStackException();
                 }
-
 //                showToast(src + ": " + rec_msg);
                 final String src_id = src;
-//                EventBus.getDefault().post(mBluenet);
 
                 new AlertDialog.Builder(getContext())
                         .setTitle("New Message Received!")
@@ -219,8 +211,6 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
 
         getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
-
-
         // Here we will can create click listners etc for all the gui elements on the fragment.
         // For eg: Button btn1= (Button) view.findViewById(R.id.frag1_btn1);
         // btn1.setOnclickListener(...
@@ -230,9 +220,6 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        //SendButton.findViewById(R.id.mapBroadcastButton);
-
         return view;
     }
 
