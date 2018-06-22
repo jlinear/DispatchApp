@@ -350,8 +350,8 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         mMap = googleMap;
 
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(500); // mini second interval
-        mLocationRequest.setFastestInterval(500);
+        mLocationRequest.setInterval(750); // mini second interval
+        mLocationRequest.setFastestInterval(750);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         try{
