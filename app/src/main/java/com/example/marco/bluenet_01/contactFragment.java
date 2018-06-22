@@ -113,6 +113,7 @@ public class contactFragment extends Fragment {
         final String [] uids = mBluenet.getNeighbors();
         List<String> uidList = Arrays.asList(uids);
         final ListAdapter PeopleListAdapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, uidList);
+//        final String [] data2 = {mBluenet.getMyID(),"Test1", "Test2"};
         ListAdapter GroupListAdapter = new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, data2);
 
         mListPeople.setAdapter(PeopleListAdapter);

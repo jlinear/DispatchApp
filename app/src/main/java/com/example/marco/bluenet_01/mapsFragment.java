@@ -267,7 +267,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
 
                 if (0 < nids.length) {
                     Log.d("MapsLog", "length of nids " + nids.length +
-                            " 1st neighbor id: "+nids[0] + " myID: " +mBluenet.getMyID());
+                            " 1st neighbor id: "+nids[0] + " myID: " + mBluenet.getMyID());
 //                    Log.d("LocLog", "lat: " + mBluenet.getLocation(nids[0]).mLatitude +" lng: " + mBluenet.getLocation(nids[0]).mLongitude);
                     for (int i = 0; i< nids.length; i++) {
                         float lat = mBluenet.getLocation(nids[i]).mLatitude;
@@ -361,7 +361,7 @@ public class mapsFragment extends Fragment implements OnMapReadyCallback  {
         double longitude = location.getLongitude();
 
         LatLng currentLatLng = new LatLng(latitude, longitude);
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 17));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 20));
     }
 
     // Switch to Chat view when marker note is clicked
